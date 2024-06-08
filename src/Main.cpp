@@ -2,6 +2,8 @@
 #include "RTree.h"
 #include "Point.h"
 
+using namespace SpatialIndex;
+
 int main() {
     RTree rtree;
 
@@ -33,6 +35,27 @@ int main() {
     std::cout << "The " << k << " nearest neighbors to point (" << p.x << ", " << p.y << "):" << std::endl;
     for (int data : k_nearest) {
         std::cout << "Data: " << data << std::endl;
+    }
+
+    // Perform a range query
+    Rectangle range(0.5, 0.5, 2.5, 2.5);
+    std::vector<int> range_results = rtree.rangeQuery(range);
+    std::cout << "Entries within range (" << range.xmin << ", " << range.ymin
+              << ", " << range.xmax << ", " << range.ymax << "):" << std::endl;
+    for (int data : range_results) {
+        std::cout << "Data: " << data << std::endl;
+    }
+
+    // Perform a spatial join with another RTree
+    RTree other_rtree;
+    other_rtree.insert(Entry(Rectangle(1, 1, 2, 2), 5));
+    other_rtree.insert(Entry(Rectangle(2, 2, 3, 3), 6));
+    other_rtree.insert(Entry(Rectangle(3, 3, 4, 4), 7));
+
+    std::vector<std::pair<int, int>> join_results = rtree.spatialJoin(other_rtree);
+    std::cout << "Spatial join results:" << std::endl;
+    for (const auto& pair : join_results) {
+        std::cout << "Data1: " << pair.first << ", Data2: " << pair.second << std::endl;
     }
 
     return 0;

@@ -2,34 +2,227 @@
 #include <algorithm>
 #include <cmath>
 
-Rectangle::Rectangle(double xmin, double ymin, double xmax, double ymax)
-    : xmin(xmin), ymin(ymin), xmax(xmax), ymax(ymax) {}
+namespace SpatialIndex {
 
-bool Rectangle::intersects(const Rectangle& other) const {
-    return !(xmin > other.xmax || xmax < other.xmin ||
-             ymin > other.ymax || ymax < other.ymin);
-}
+    Rectangle::Rectangle() {
+        this->minX = std::numeric_limits<float>::max();
+        this->minY = std::numeric_limits<float>::max();
+        this->maxX = std::numeric_limits<float>::min();
+        this->maxY = std::numeric_limits<float>::min();
+    }
 
-bool Rectangle::contains(const Rectangle& other) const {
-    return (xmin <= other.xmin && xmax >= other.xmax &&
-            ymin <= other.ymin && ymax >= other.ymax);
-}
+    Rectangle::Rectangle(float x1, float y1, float x2, float y2) {
+        set(x1, y1, x2, y2);
+    }
 
-double Rectangle::area() const {
-    return (xmax - xmin) * (ymax - ymin);
-}
+    void Rectangle::set(float x1, float y1, float x2, float y2) {
+        this->minX = std::min(x1, x2);
+        this->minY = std::min(y1, y2);
+        this->maxX = std::max(x1, x2);
+        this->maxY = std::max(y1, y2);
+    }
 
-double Rectangle::enlargement(const Rectangle& other) const {
-    double new_xmin = std::min(xmin, other.xmin);
-    double new_ymin = std::min(ymin, other.ymin);
-    double new_xmax = std::max(xmax, other.xmax);
-    double new_ymax = std::max(ymax, other.ymax);
-    Rectangle new_rect(new_xmin, new_ymin, new_xmax, new_ymax);
-    return new_rect.area() - this->area();
-}
+    void set(Rectangle r) {
+        // TODO: Sets the size of this rectangle to equal the passed rectangle.
+    }
 
-double Rectangle::distanceTo(const Point& p) const {
-    double dx = std::max({xmin - p.x, 0.0, p.x - xmax});
-    double dy = std::max({ymin - p.y, 0.0, p.y - ymax});
-    return std::sqrt(dx * dx + dy * dy);
+    Rectangle Rectangle::copy() {
+        return {minX, minY, maxX, maxY};
+    }
+
+    bool Rectangle::edgeOverlaps(Rectangle r) {
+        return minX == r.minX || maxX == r.maxX || minY == r.minY || maxY == r.maxY;
+    }
+
+    bool Rectangle::intersects(Rectangle r) {
+        return maxX >= r.minX && minX <= r.maxX && maxY >= r.minY && minY <= r.maxY;
+    }
+
+    bool Rectangle::contains(Rectangle r) {
+        return maxX >= r.maxX && minX <= r.minX && maxY >= r.maxY && minY <= r.minY;
+    }
+
+    bool Rectangle::containedBy(Rectangle r) {
+        return r.maxX >= maxX && r.minX <= minX && r.maxY >= maxY && r.minY <= minY;
+    }
+
+    float Rectangle::distance(Point p) {
+        float distanceSquared = 0;
+
+        float temp = minX - p.x;
+        if (temp < 0) {
+            temp = p.x - maxX;
+        }
+
+        if (temp > 0) {
+            distanceSquared += (temp * temp);
+        }
+
+        temp = minY - p.y;
+        if (temp < 0) {
+            temp = p.y - maxY;
+        }
+
+        if (temp > 0) {
+            distanceSquared += (temp * temp);
+        }
+
+        return std::sqrt(distanceSquared);
+    }
+
+    float Rectangle::distance(float minX, float minY, float maxX, float maxY, float pX, float pY) {
+        return std::sqrt(distanceSq(minX, minY, maxX, maxY, pX, pY));
+    }
+
+    float Rectangle::distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY) {
+        float distanceSqX = 0;
+        float distanceSqY = 0;
+
+        if (minX > pX) {
+            distanceSqX = minX - pX;
+            distanceSqX *= distanceSqX;
+        } else if (pX > maxX) {
+            distanceSqX = pX - maxX;
+            distanceSqX *= distanceSqX;
+        }
+
+        if (minY > pY) {
+            distanceSqY = minY - pY;
+            distanceSqY *= distanceSqY;
+        } else if (pY > maxY) {
+            distanceSqY = pY - maxY;
+            distanceSqY *= distanceSqY;
+        }
+
+        return distanceSqX + distanceSqY;
+    }
+
+    float Rectangle::distance(Rectangle r) {
+        float distanceSquared = 0;
+        float greatestMin = std::max(minX, r.minX);
+        float leastMax = std::min(maxX, r.maxX);
+        if (greatestMin > leastMax) {
+            distanceSquared += (greatestMin - leastMax) * (greatestMin - leastMax);
+        }
+        greatestMin = std::max(minY, r.minY);
+        leastMax = std::min(maxY, r.maxY);
+        if (greatestMin > leastMax) {
+            distanceSquared += (greatestMin - leastMax) * (greatestMin - leastMax);
+        }
+        return std::sqrt(distanceSquared);
+    }
+
+    float Rectangle::enlargement(Rectangle r) {
+        float enlargedArea = ( std::max(maxX, r.maxX) - std::min(minX, r.minX) ) *
+                             ( std::max(maxY, r.maxY) - std::min(minY, r.minY) );
+        return enlargedArea - area();
+    }
+
+    float Rectangle::enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY, float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
+        float r1Area = (r1MaxX - r1MinX) * (r1MaxY - r1MinY);
+
+        if (r1Area == std::numeric_limits<float>::max()) {
+            return 0;
+        }
+
+        if (r2MinX < r1MinX) r1MinX = r2MinX;
+        if (r2MinY < r1MinY) r1MinY = r2MinY;
+        if (r2MaxX > r1MaxX) r1MaxX = r2MaxX;
+        if (r2MaxY > r1MaxY) r1MaxY = r2MaxY;
+
+        float r1r2UnionArea = (r1MaxX - r1MinX) * (r1MaxY - r1MinY);
+
+        if (r1r2UnionArea == std::numeric_limits<float>::max()) {
+            return std::numeric_limits<float>::max();
+        }
+
+        return r1r2UnionArea - r1Area;
+    }
+
+    float Rectangle::area() {
+        return (maxX - minX) * (maxY - minY);
+    }
+
+    float Rectangle::area(float minX, float minY, float maxX, float maxY) {
+        return (maxX - minX) * (maxY - minY);
+    }
+
+    void Rectangle::add(Rectangle r) {
+        if (r.minX < minX) minX = r.minX;
+        if (r.maxX > maxX) maxX = r.maxX;
+        if (r.minY < minY) minY = r.minY;
+        if (r.maxY > maxY) maxY = r.maxY;
+    }
+
+    void Rectangle::add(Point p) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+    }
+
+    Rectangle Rectangle::findUnion(Rectangle r) {
+        Rectangle union_ = this->copy();
+        union_.add(r);
+        return union_;
+    }
+
+    int Rectangle::floatToIntBits(float value) {
+        FloatIntUnion u{};
+        u.f = value;
+        return u.i;
+    }
+
+    int Rectangle::hashCode() {
+        static int prime = 31;
+        int result = 1;
+        result = prime * result + floatToIntBits(maxX);
+        result = prime * result + floatToIntBits(maxY);
+        result = prime * result + floatToIntBits(minX);
+        result = prime * result + floatToIntBits(minY);
+        return result;
+    }
+
+    bool Rectangle::equals(Rectangle r) {
+        return maxX == r.maxX && maxY == r.maxY && minX == r.minX && minY == r.minY;
+    }
+
+    bool Rectangle::sameObject(Rectangle r) {
+        // TODO: The object to compare with this rectangle.
+    }
+
+    std::string Rectangle::toString() {
+        // TODO: return string
+    }
+
+    float Rectangle::width() {
+        return maxX - minX;
+    }
+
+    float Rectangle::height() {
+        return maxY - minY;
+    }
+
+    float Rectangle::aspectRatio() {
+        return width() / height();
+    }
+
+    Point Rectangle::centre() {
+        return {(minX + maxX) / 2, (minY + maxY) / 2};
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

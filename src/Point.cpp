@@ -1,10 +1,23 @@
 #include "Point.h"
 #include <cmath>
 
-Point::Point(double x, double y) : x(x), y(y) {}
+namespace SpatialIndex {
 
-double Point::distanceTo(const Point& other) const {
-    double dx = x - other.x;
-    double dy = y - other.y;
-    return std::sqrt(dx * dx + dy * dy);
+    Point::Point(float x, float y) {
+        this->x = x;
+        this->y = y;
+    }
+
+    void Point::set(Point other) {
+        this->x = other.x;
+        this->y = other.y;
+    }
+
+    int Point::xInt() {
+        return static_cast<int>(std::round(this->x));
+    }
+
+    int Point::yInt() {
+        return static_cast<int>(std::round(this->y));
+    }
 }

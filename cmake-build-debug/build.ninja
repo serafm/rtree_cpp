@@ -55,12 +55,6 @@ build CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o: CXX_COMPILER__rtree_cpp_v
   OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
   OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src
 
-build CMakeFiles/rtree_cpp_v2.dir/src/Entry.cpp.o: CXX_COMPILER__rtree_cpp_v2_unscanned_Debug /home/serafm/dev/rtree-cpp-v2/src/Entry.cpp || cmake_object_order_depends_target_rtree_cpp_v2
-  DEP_FILE = CMakeFiles/rtree_cpp_v2.dir/src/Entry.cpp.o.d
-  FLAGS = -g -fdiagnostics-color=always
-  OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
-  OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src
-
 build CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o: CXX_COMPILER__rtree_cpp_v2_unscanned_Debug /home/serafm/dev/rtree-cpp-v2/src/RTree.cpp || cmake_object_order_depends_target_rtree_cpp_v2
   DEP_FILE = CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o.d
   FLAGS = -g -fdiagnostics-color=always
@@ -85,6 +79,24 @@ build CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o: CXX_COMPILER__rtree_cpp_v2_un
   OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
   OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src
 
+build CMakeFiles/rtree_cpp_v2.dir/src/structures/PriorityQueue.cpp.o: CXX_COMPILER__rtree_cpp_v2_unscanned_Debug /home/serafm/dev/rtree-cpp-v2/src/structures/PriorityQueue.cpp || cmake_object_order_depends_target_rtree_cpp_v2
+  DEP_FILE = CMakeFiles/rtree_cpp_v2.dir/src/structures/PriorityQueue.cpp.o.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
+  OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src/structures
+
+build CMakeFiles/rtree_cpp_v2.dir/src/structures/TIntArrayList.cpp.o: CXX_COMPILER__rtree_cpp_v2_unscanned_Debug /home/serafm/dev/rtree-cpp-v2/src/structures/TIntArrayList.cpp || cmake_object_order_depends_target_rtree_cpp_v2
+  DEP_FILE = CMakeFiles/rtree_cpp_v2.dir/src/structures/TIntArrayList.cpp.o.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
+  OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src/structures
+
+build CMakeFiles/rtree_cpp_v2.dir/src/structures/TFloatArrayList.cpp.o: CXX_COMPILER__rtree_cpp_v2_unscanned_Debug /home/serafm/dev/rtree-cpp-v2/src/structures/TFloatArrayList.cpp || cmake_object_order_depends_target_rtree_cpp_v2
+  DEP_FILE = CMakeFiles/rtree_cpp_v2.dir/src/structures/TFloatArrayList.cpp.o.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
+  OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src/structures
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target rtree_cpp_v2
@@ -93,7 +105,7 @@ build CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o: CXX_COMPILER__rtree_cpp_v2_un
 #############################################
 # Link the executable rtree_cpp_v2
 
-build rtree_cpp_v2: CXX_EXECUTABLE_LINKER__rtree_cpp_v2_Debug CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Entry.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o
+build rtree_cpp_v2: CXX_EXECUTABLE_LINKER__rtree_cpp_v2_Debug CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/structures/PriorityQueue.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/structures/TIntArrayList.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/structures/TFloatArrayList.cpp.o
   FLAGS = -g
   OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
   POST_BUILD = :

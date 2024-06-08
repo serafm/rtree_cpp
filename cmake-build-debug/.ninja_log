@@ -1,19 +1,10 @@
 # ninja log v5
-2	488	1716017127087437985	CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o	222944f0a44f4e35
-2	730	1716017127327446085	CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o	6ecce34cf566f445
-1	416	1716017127015435555	CMakeFiles/rtree_cpp_v2.dir/src/Entry.cpp.o	3dfb13dfd8fbe38a
-1	38	1716019082466716184	build.ninja	3bc34e4271a69388
-1	447	1716017127043436500	CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o	40deb2865d894f97
-1	914	1716017127511452295	CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o	157fe881c96645d
-0	353	1716017126951433395	CMakeFiles/rtree_cpp_v2.dir/main.cpp.o	f11d929ef12f6693
-2	144	1716017150984245548	rtree_cpp_v2	c8c24f5ce073dcc7
-2	32	1716019842860984957	CMakeFiles/rtree_cpp_v2.dir/src/Entry.cpp.o	3dfb13dfd8fbe38a
-4	173	1716019843004996334	CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o	222944f0a44f4e35
 4	201	1716019843032998543	CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o	65daf0979f2c732f
+3	164	1716037889335193889	CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o	222944f0a44f4e35
+2	491	1716037889663201649	CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o	6ecce34cf566f445
+2	30	1716037889195190576	CMakeFiles/rtree_cpp_v2.dir/src/Entry.cpp.o	3dfb13dfd8fbe38a
+1	38	1717830937184978628	build.ninja	3bc34e4271a69388
 2	427	1716019843261016535	CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o	40deb2865d894f97
-3	450	1716019843281018113	CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o	6ecce34cf566f445
-3	828	1716019843661048100	CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o	157fe881c96645d
-828	984	1716019843817060410	rtree_cpp_v2	6d45a8bb85ae2a00
-3	458	1716019911878227041	CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o	6ecce34cf566f445
-3	759	1716019912178248960	CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o	157fe881c96645d
-759	919	1716019912338260645	rtree_cpp_v2	6d45a8bb85ae2a00
+2	994	1716037890163213476	CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o	157fe881c96645d
+0	353	1716017126951433395	CMakeFiles/rtree_cpp_v2.dir/main.cpp.o	f11d929ef12f6693
+994	1124	1716037890295216597	rtree_cpp_v2	6d45a8bb85ae2a00
