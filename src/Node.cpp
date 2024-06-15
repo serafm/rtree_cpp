@@ -12,8 +12,7 @@ namespace SpatialIndex {
         std::vector<int> ids(maxNodeEntries, 0);
     }
 
-    Node::~Node() {
-    }
+    Node::~Node() = default;
 
     void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
         ids.at(entryCount) = id;

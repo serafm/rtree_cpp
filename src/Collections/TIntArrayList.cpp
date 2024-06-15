@@ -5,7 +5,7 @@
 #include <vector>
 #include <stdexcept>
 
-namespace DataStructures {
+namespace Collections {
 
     // Creates a new TIntArrayList instance with the default capacity.
     TIntArrayList::TIntArrayList() {
@@ -15,6 +15,7 @@ namespace DataStructures {
     // Creates a new TIntArrayList instance with the specified capacity.
     TIntArrayList::TIntArrayList(int capacity) {
         data = std::vector<int>(capacity, 0);
+        position = 0;
     }
 
     // Adds value to the end of the list.
@@ -66,5 +67,18 @@ namespace DataStructures {
     be used as an alternative to the clear() method if you want to recycle a
     list without allocating new backing arrays.
     **/
-    void TIntArrayList::reset() {}
+    void TIntArrayList::reset() {
+        position = 0;
+        data.clear();
+    }
+
+    bool TIntArrayList::forEach(Procedure procedure) const {
+        for (int i = position; i-- > 0;) {
+            if (!procedure.execute(data[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

@@ -25,6 +25,7 @@ namespace SpatialIndex {
         int entryCount;
 
         Node(int nodeId, int level, int maxNodeEntries);
+        Node() = default;
         ~Node();
         void addEntry(float minX, float minY, float maxX, float maxY, int id);
         int findEntry(float minX, float minY, float maxX, float maxY, int id);

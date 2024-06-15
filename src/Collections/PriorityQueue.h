@@ -9,7 +9,7 @@
 #include "TFloatArrayList.h"
 #include "TIntArrayList.h"
 
-namespace DataStructures {
+namespace Collections {
     class PriorityQueue {
     public:
         explicit PriorityQueue(bool sortOrder);

@@ -6,11 +6,14 @@
 #define TINTARRAYLIST_H
 #include <vector>
 
-namespace DataStructures {
+#include "Procedure.h"
+
+namespace Collections {
     class TIntArrayList {
     private:
         int DEFAULT_CAPACITY = 10;
         std::vector<int> data;
+        int position;
 
     public:
         TIntArrayList();
@@ -22,6 +25,7 @@ namespace DataStructures {
         int set(int offset, int value);
         void clear(int capacity);
         void reset();
+        bool forEach(Procedure procedure) const;
     };
 }
 

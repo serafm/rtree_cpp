@@ -73,6 +73,9 @@ namespace SpatialIndex {
         */
         bool contains(Rectangle r);
 
+        bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+                                 float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
+
         /**
             * Determine whether this rectangle is contained by the passed rectangle
             *

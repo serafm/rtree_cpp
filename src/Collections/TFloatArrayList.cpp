@@ -6,7 +6,7 @@
 
 #include <stdexcept>
 
-namespace DataStructures {
+namespace Collections {
 
     // Creates a new TFloatArrayList instance with the default capacity.
     TFloatArrayList::TFloatArrayList() {
@@ -19,7 +19,7 @@ namespace DataStructures {
     }
 
     // Adds value to the end of the list.
-    bool TFloatArrayList::add(int value) {
+    bool TFloatArrayList::add(float value) {
         data.push_back(value);
         return true;
     }
@@ -48,7 +48,7 @@ namespace DataStructures {
     }
 
     // Sets the value at the specified offset.
-    float TFloatArrayList::set(int offset, int value) {
+    float TFloatArrayList::set(int offset, float value) {
         if (offset >= data.size()) {
             throw std::out_of_range("Index out of range");
         }

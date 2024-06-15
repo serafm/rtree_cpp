@@ -6,7 +6,7 @@
 #define TFLOATARRAYLIST_H
 #include <vector>
 
-namespace DataStructures {
+namespace Collections {
     class TFloatArrayList {
     private:
         int DEFAULT_CAPACITY = 10;
@@ -15,14 +15,14 @@ namespace DataStructures {
     public:
         TFloatArrayList();
         explicit TFloatArrayList(int capacity);
-        bool add(int value);
-        float removeAt(int index);
-        float get(int index);
+        bool add(float value);
+        float removeAt(int offset);
+        float get(int offset);
         int size();
-        float set(int offset, int value);
+        float set(int offset, float value);
         void clear(int capacity);
         void reset();
     };
-} // DataStructures
+}
 
 #endif //TFLOATARRAYLIST_H
