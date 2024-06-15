@@ -9,13 +9,18 @@
 
 namespace Collections {
 
+
+    PriorityQueue::PriorityQueue(bool sortOrder) {
+        this->PriorityQueue::PriorityQueue(sortOrder, 10);
+    }
+
     PriorityQueue::PriorityQueue(bool sortOrder, int initialCapacity) {
         this->sortOrder = sortOrder;
         values = TIntArrayList(initialCapacity);
         priorities = TFloatArrayList(initialCapacity);
     }
 
-    bool PriorityQueue::sortsEarlierThan(float p1, float p2) {
+    bool PriorityQueue::sortsEarlierThan(float p1, float p2) const {
         if (sortOrder == SORT_ORDER_ASCENDING) {
             return p1 < p2;
         }

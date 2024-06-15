@@ -12,7 +12,7 @@
 namespace Collections {
     class PriorityQueue {
     public:
-        explicit PriorityQueue(bool sortOrder);
+        PriorityQueue(bool sortOrder);
         PriorityQueue(bool sortOrder, int initialCapacity);
         bool SORT_ORDER_ASCENDING = true;
         bool SORT_ORDER_DESCENDING = false;
@@ -30,7 +30,7 @@ namespace Collections {
         TFloatArrayList priorities;
         bool sortOrder = SORT_ORDER_ASCENDING;
         bool INTERNAL_CONSISTENCY_CHECKING = false;
-        bool sortsEarlierThan(float p1, float p2);
+        bool sortsEarlierThan(float p1, float p2) const;
         void promote(int index, int value, float priority);
         void demote(int index, int value, float priority);
         void check();

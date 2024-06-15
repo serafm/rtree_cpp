@@ -61,7 +61,7 @@ namespace SpatialIndex {
         void nearestN(Point p, Collections::Procedure v, int count, float furthestDistance);
         void intersects(Rectangle r, Collections::Procedure v);
         void contains(Rectangle r, Collections::Procedure v);
-        int treeSize();
+        int treeSize() const;
         Rectangle getBounds();
         Node getNode(int id);
         int getRootNodeId();
