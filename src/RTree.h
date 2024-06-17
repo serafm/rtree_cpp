@@ -64,7 +64,7 @@ namespace SpatialIndex {
         int treeSize() const;
         Rectangle getBounds();
         Node getNode(int id);
-        int getRootNodeId();
+        int getRootNodeId() const;
         bool checkConsistency();
 
     };

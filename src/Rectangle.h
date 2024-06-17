@@ -2,17 +2,16 @@
 #define RECTANGLE_H
 
 #include <string>
-
 #include "Point.h"
 
 namespace SpatialIndex {
 
     class Rectangle {
     public:
-        float minX;
-        float minY;
-        float maxX;
-        float maxY;
+        float minX{};
+        float minY{};
+        float maxX{};
+        float maxY{};
 
         Rectangle();
 
@@ -27,32 +26,17 @@ namespace SpatialIndex {
         Rectangle(float x1, float y1, float x2, float y2);
 
         /**
-            * Sets the size of the rectangle.
-            *
-            * @param x1 coordinate of any corner of the rectangle
-            * @param y1 (see x1)
-            * @param x2 coordinate of the opposite corner
-            * @param y2 (see x2)
-        */
-        void set(float x1, float y1, float x2, float y2);
-
-        /**
-            * Sets the size of this rectangle to equal the passed rectangle.
-        */
-        void set(Rectangle r);
-
-        /**
             * Make a copy of this rectangle
             *
             * @return copy of this rectangle
         */
-        Rectangle copy();
+        Rectangle copy() const;
 
         /**
             * Determine whether an edge of this rectangle overlies the equivalent
             * edge of the passed rectangle
         */
-        bool edgeOverlaps(Rectangle r);
+        bool edgeOverlaps(Rectangle r) const;
 
         /**
             * Determine whether this rectangle intersects the passed rectangle
@@ -61,7 +45,7 @@ namespace SpatialIndex {
             *
             * @return true if the rectangles intersect, false if they do not intersect
         */
-        bool intersects(Rectangle r);
+        bool intersects(Rectangle r) const;
 
         /**
             * Determine whether this rectangle contains the passed rectangle
@@ -71,9 +55,9 @@ namespace SpatialIndex {
             * @return true if this rectangle contains the passed rectangle, false if
             *         it does not
         */
-        bool contains(Rectangle r);
+        bool contains(Rectangle r) const;
 
-        bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+        static bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                                  float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
 
         /**
@@ -84,7 +68,7 @@ namespace SpatialIndex {
             * @return true if the passed rectangle contains this rectangle, false if
             *         it does not
         */
-        bool containedBy(Rectangle r);
+        bool containedBy(Rectangle r) const;
 
         /**
             * Return the distance between this rectangle and the passed point.
@@ -94,7 +78,7 @@ namespace SpatialIndex {
             *
             * @return distance beween this rectangle and the passed point.
         */
-        float distance(Point p);
+        float distance(Point p) const;
 
         /**
             * Return the distance between this rectangle and the passed rectangle.
@@ -104,7 +88,7 @@ namespace SpatialIndex {
             *
             * @return distance between this rectangle and the passed rectangle
         */
-        float distance(Rectangle r);
+        float distance(Rectangle r) const;
 
         /**
             * Return the distance between a rectangle and a point.
@@ -119,7 +103,7 @@ namespace SpatialIndex {
             *
             * @return distance beween this rectangle and the passed point.
         */
-        float distance(float minX, float minY, float maxX, float maxY, float pX, float pY);
+        static float distance(float minX, float minY, float maxX, float maxY, float pX, float pY);
 
 
         static float distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY);
@@ -151,7 +135,7 @@ namespace SpatialIndex {
             *
             * @return enlargement
         */
-        float enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+        static float enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                           float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
 
         /**
@@ -159,7 +143,7 @@ namespace SpatialIndex {
             *
             * @return The area of this rectangle
         */
-        float area();
+        float area() const;
 
         /**
             * Compute the area of a rectangle.
@@ -171,7 +155,7 @@ namespace SpatialIndex {
             *
             * @return The area of the rectangle
         */
-        float area(float minX, float minY, float maxX, float maxY);
+        static float area(float minX, float minY, float maxX, float maxY);
 
         /**
             * Computes the union of this rectangle and the passed rectangle, storing
@@ -195,16 +179,16 @@ namespace SpatialIndex {
             *
             * @param r The rectangle to union with this rectangle
         */
-        Rectangle findUnion(Rectangle r);
+        Rectangle findUnion(Rectangle r) const;
 
         union FloatIntUnion {
             float f;
             int i;
         };
 
-        int floatToIntBits(float value);
+        static int floatToIntBits(float value);
 
-        int hashCode();
+        int hashCode() const;
 
         /**
             * Determine whether this rectangle is equal to a given object.
@@ -212,7 +196,7 @@ namespace SpatialIndex {
             *
             * @param o The object to compare with this rectangle
         */
-        bool equals(Rectangle r);
+        bool equals(Rectangle r) const;
 
         /**
             * Determine whether this rectangle is the same as another object
@@ -232,13 +216,13 @@ namespace SpatialIndex {
         */
         std::string toString();
 
-        float width();
+        float width() const;
 
-        float height();
+        float height() const;
 
-        float aspectRatio();
+        float aspectRatio() const;
 
-        Point centre();
+        Point centre() const;
     };
 }
 #endif // RECTANGLE_H

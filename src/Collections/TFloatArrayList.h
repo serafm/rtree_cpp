@@ -20,6 +20,7 @@ namespace Collections {
         float get(int offset);
         int size();
         float set(int offset, float value);
+        void clear();
         void clear(int capacity);
         void reset();
     };

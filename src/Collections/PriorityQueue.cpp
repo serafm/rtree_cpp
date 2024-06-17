@@ -35,17 +35,24 @@ namespace Collections {
     }
 
     void PriorityQueue::promote(int index, int value, float priority) {
+        // Loop until the node is at the root or no further promotion is needed
         while (index > 0) {
+            // Calculate the index of the parent node
             int parentIndex = (index -1) / 2;
+
+            // Get the priority of the parent node
             float parentPriority = priorities.get(parentIndex);
 
+            // Check if the current node's priority should not be promoted further
             if (sortsEarlierThan(parentPriority, priority)) {
                 break;
             }
 
+            // Move the current value and priority up in the heap
             values.set(index, value);
             priorities.set(index, priority);
 
+            // Optional internal consistency check
             if (INTERNAL_CONSISTENCY_CHECKING) {
                 check();
             }
@@ -54,6 +61,11 @@ namespace Collections {
 
     int PriorityQueue::size() {
         return values.size();
+    }
+
+    void PriorityQueue::clear() {
+        values.clear();
+        priorities.clear();
     }
 
     int PriorityQueue::getValue() {
@@ -67,27 +79,37 @@ namespace Collections {
     void PriorityQueue::demote(int index, int value, float priority) {
         int childIndex = (index * 2) + 1; // left child
 
+        // Loop as long as the current node has at least one child
         while (childIndex < values.size()) {
+            // Get the priority of the left child
             float childPriority = priorities.get(childIndex);
 
+            // Check if the right child exists
             if (childIndex + 1 < values.size()) {
+                // Get the priority of the right child
                 float rightPriority = priorities.get(childIndex + 1);
+                // Determine if the right child has a higher priority than the left child
                 if (sortsEarlierThan(rightPriority, childPriority)) {
                     childPriority = rightPriority;
-                    childIndex++; // right child
+                    childIndex++; // Move to the right child
                 }
             }
 
+            // Compare the priority of the current node with the highest priority child
             if (sortsEarlierThan(childPriority, priority)) {
+                // If the child's priority is higher, move the child up
                 priorities.set(index, childPriority);
                 values.set(index, values.get(childIndex));
+                // Move down to the child index
                 index = childIndex;
+                // Update to the left child of the new index
                 childIndex = (index * 2) + 1;
             } else {
-                break;
+                break; // The current node is in the correct position
             }
         }
 
+        // Place the demoted value in its final position
         values.set(index, value);
         priorities.set(index, priority);
     }
@@ -114,42 +136,46 @@ namespace Collections {
         return ret;
     }
 
-    /**
-     * 
-     * @param sortOrder 
-     */
     void PriorityQueue::setSortOrder(bool sortOrder) {
+        // Check if the sort order needs to be changed
         if (this->sortOrder != sortOrder) {
+            // Update the sort order
             this->sortOrder = sortOrder;
-            // reheapify the arrays
+
+            // Reheapify the arrays to maintain the heap property with the new sort order
             for (int i = (values.size() / 2) - 1; i >= 0; i--) {
                 demote(i, values.get(i), priorities.get(i));
             }
         }
+
         if (INTERNAL_CONSISTENCY_CHECKING) {
             check();
         }
     }
 
-    /**
-     * For each entry, check that the child entries have a lower or equal priority
-    **/
     void PriorityQueue::check() {
+        // Get the index of the last element
         int lastIndex = values.size() - 1;
 
+        // Loop over all non-leaf nodes to check the heap property
         for (int i = 0; i < values.size() / 2; i++) {
+            // Get the priority of the current node
             float currentPriority = priorities.get(i);
 
+            // Check the left child
             int leftIndex = (i * 2) + 1;
             if (leftIndex <= lastIndex) {
+                // Get the priority of the left child
                 float leftPriority = priorities.get(leftIndex);
                 if (sortsEarlierThan(leftPriority, currentPriority)) {
                     std::cerr << "Internal error in PriorityQueue" << std::endl;
                 }
             }
 
+            // Check the right child
             int rightIndex = (i * 2) + 2;
             if (rightIndex <= lastIndex) {
+                // Get the priority of the right child
                 float rightPriority = priorities.get(rightIndex);
                 if (sortsEarlierThan(rightPriority, currentPriority)) {
                     std::cerr << "Internal error in PriorityQueue" << std::endl;

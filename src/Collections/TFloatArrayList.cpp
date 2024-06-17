@@ -57,6 +57,10 @@ namespace Collections {
         return previous_value;
     }
 
+    void TFloatArrayList::clear() {
+        clear(DEFAULT_CAPACITY);
+    }
+
     // Flushes the internal state of the list, setting the capacity of the empty list to capacity.
     void TFloatArrayList::clear(int capacity) {
         data = std::vector<float>(capacity);

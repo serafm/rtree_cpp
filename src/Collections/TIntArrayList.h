@@ -23,6 +23,7 @@ namespace Collections {
         int get(int index);
         int size();
         int set(int offset, int value);
+        void clear();
         void clear(int capacity);
         void reset();
         bool forEach(Procedure procedure) const;

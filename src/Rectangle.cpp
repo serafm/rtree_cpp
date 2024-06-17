@@ -12,10 +12,6 @@ namespace SpatialIndex {
     }
 
     Rectangle::Rectangle(float x1, float y1, float x2, float y2) {
-        set(x1, y1, x2, y2);
-    }
-
-    void Rectangle::set(float x1, float y1, float x2, float y2) {
         this->minX = std::min(x1, x2);
         this->minY = std::min(y1, y2);
         this->maxX = std::max(x1, x2);
@@ -26,19 +22,19 @@ namespace SpatialIndex {
         // TODO: Sets the size of this rectangle to equal the passed rectangle.
     }
 
-    Rectangle Rectangle::copy() {
+    Rectangle Rectangle::copy() const {
         return {minX, minY, maxX, maxY};
     }
 
-    bool Rectangle::edgeOverlaps(Rectangle r) {
+    bool Rectangle::edgeOverlaps(Rectangle r) const {
         return minX == r.minX || maxX == r.maxX || minY == r.minY || maxY == r.maxY;
     }
 
-    bool Rectangle::intersects(Rectangle r) {
+    bool Rectangle::intersects(Rectangle r) const {
         return maxX >= r.minX && minX <= r.maxX && maxY >= r.minY && minY <= r.maxY;
     }
 
-    bool Rectangle::contains(Rectangle r) {
+    bool Rectangle::contains(Rectangle r) const {
         return maxX >= r.maxX && minX <= r.minX && maxY >= r.maxY && minY <= r.minY;
     }
 
@@ -47,11 +43,11 @@ namespace SpatialIndex {
         return r1MaxX >= r2MaxX && r1MinX <= r2MinX && r1MaxY >= r2MaxY && r1MinY <= r2MinY;
     }
 
-    bool Rectangle::containedBy(Rectangle r) {
+    bool Rectangle::containedBy(Rectangle r) const {
         return r.maxX >= maxX && r.minX <= minX && r.maxY >= maxY && r.minY <= minY;
     }
 
-    float Rectangle::distance(Point p) {
+    float Rectangle::distance(Point p) const {
         float distanceSquared = 0;
 
         float temp = minX - p.x;
@@ -102,7 +98,7 @@ namespace SpatialIndex {
         return distanceSqX + distanceSqY;
     }
 
-    float Rectangle::distance(Rectangle r) {
+    float Rectangle::distance(Rectangle r) const {
         float distanceSquared = 0;
         float greatestMin = std::max(minX, r.minX);
         float leastMax = std::min(maxX, r.maxX);
@@ -144,7 +140,7 @@ namespace SpatialIndex {
         return r1r2UnionArea - r1Area;
     }
 
-    float Rectangle::area() {
+    float Rectangle::area() const {
         return (maxX - minX) * (maxY - minY);
     }
 
@@ -166,7 +162,7 @@ namespace SpatialIndex {
         if (p.y > maxY) maxY = p.y;
     }
 
-    Rectangle Rectangle::findUnion(Rectangle r) {
+    Rectangle Rectangle::findUnion(Rectangle r) const {
         Rectangle union_ = this->copy();
         union_.add(r);
         return union_;
@@ -178,7 +174,7 @@ namespace SpatialIndex {
         return u.i;
     }
 
-    int Rectangle::hashCode() {
+    int Rectangle::hashCode() const {
         static int prime = 31;
         int result = 1;
         result = prime * result + floatToIntBits(maxX);
@@ -188,7 +184,7 @@ namespace SpatialIndex {
         return result;
     }
 
-    bool Rectangle::equals(Rectangle r) {
+    bool Rectangle::equals(Rectangle r) const {
         return maxX == r.maxX && maxY == r.maxY && minX == r.minX && minY == r.minY;
     }
 
@@ -200,19 +196,19 @@ namespace SpatialIndex {
         // TODO: return string
     }
 
-    float Rectangle::width() {
+    float Rectangle::width() const {
         return maxX - minX;
     }
 
-    float Rectangle::height() {
+    float Rectangle::height() const {
         return maxY - minY;
     }
 
-    float Rectangle::aspectRatio() {
+    float Rectangle::aspectRatio() const {
         return width() / height();
     }
 
-    Point Rectangle::centre() {
+    Point Rectangle::centre() const {
         return {(minX + maxX) / 2, (minY + maxY) / 2};
     }
 

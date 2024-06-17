@@ -57,6 +57,10 @@ namespace Collections {
         return previous_value;
     }
 
+    void TIntArrayList::clear() {
+        clear(DEFAULT_CAPACITY);
+    }
+
     // Flushes the internal state of the list, setting the capacity of the empty list to capacity.
     void TIntArrayList::clear(int capacity) {
         data = std::vector<int>(capacity);
