@@ -37,6 +37,7 @@ namespace SpatialIndex {
         int getId(int index);
         bool isLeaf();
         int getLevel();
+        bool isEmpty() const;
     };
 
 }

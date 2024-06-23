@@ -10,7 +10,7 @@
 #include "Collections/Procedure.h"
 
 namespace Collections {
-    class TIntArrayList;
+    class IntVector;
     class PriorityQueue;
 }
 
@@ -40,19 +40,19 @@ namespace SpatialIndex {
         Node splitNode(Node n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
         void pickSeeds(Node n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, Node newNode);
         int pickNext(Node n, Node newNode);
-        float nearest(Point p, Node n, float furthestDistanceSq, Collections::TIntArrayList nearestIds);
+        float nearest(Point p, Node n, float furthestDistanceSq, Collections::IntVector nearestIds);
         bool intersects(Rectangle r, Collections::Procedure v, Node n);
-        void condenseTree(Node l);
+        void condenseTree(const Node& l);
         Node chooseNode(float minX, float minY, float maxX, float maxY, int level);
         Node adjustTree(Node n, Node nn);
         bool checkConsistency(int nodeId, int expectedLevel, Rectangle expectedMBR);
-        Rectangle calculateMBR(Node n);
+        static Rectangle calculateMBR(Node n);
 
     public:
         int maxNodeEntries;
         int minNodeEntries;
 
-        RTree();
+        RTree() = default;
         void init();
         void add(Rectangle r, int id);
         bool del(Rectangle r, int id);

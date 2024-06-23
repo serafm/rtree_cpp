@@ -2,22 +2,22 @@
 // Created by serafm on 7/6/2024.
 //
 
-#ifndef TINTARRAYLIST_H
-#define TINTARRAYLIST_H
+#ifndef INTVECTOR_H
+#define INTVECTOR_H
 #include <vector>
 
 #include "Procedure.h"
 
 namespace Collections {
-    class TIntArrayList {
+    class IntVector {
     private:
         int DEFAULT_CAPACITY = 10;
         std::vector<int> data;
         int position;
 
     public:
-        TIntArrayList();
-        explicit TIntArrayList(int capacity);
+        IntVector();
+        explicit IntVector(int capacity);
         bool add(int value);
         int removeAt(int index);
         int get(int index);
@@ -30,4 +30,4 @@ namespace Collections {
     };
 }
 
-#endif //TINTARRAYLIST_H
+#endif //INTVECTOR_H

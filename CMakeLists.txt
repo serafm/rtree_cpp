@@ -15,8 +15,8 @@ add_executable(rtree_cpp_v2
         src/Point.h
         src/Collections/PriorityQueue.cpp
         src/Collections/PriorityQueue.h
-        src/Collections/TIntArrayList.cpp
-        src/Collections/TIntArrayList.h
-        src/Collections/TFloatArrayList.cpp
-        src/Collections/TFloatArrayList.h
+        src/Collections/IntVector.cpp
+        src/Collections/IntVector.h
+        src/Collections/FloatVector.cpp
+        src/Collections/FloatVector.h
         src/Collections/Procedure.h)

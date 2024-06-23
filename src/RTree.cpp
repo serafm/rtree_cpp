@@ -4,13 +4,11 @@
 #include <limits>
 #include <vector>
 
-#include "Collections/TIntArrayList.h"
+#include "Collections/IntVector.h"
 #include "Collections/PriorityQueue.h"
 #include "Rectangle.h"
 
 namespace SpatialIndex {
-
-    RTree::RTree() = default;
 
     void RTree::init() {
         maxNodeEntries = DEFAULT_MAX_NODE_ENTRIES;
@@ -47,7 +45,7 @@ namespace SpatialIndex {
 
         Node newNode = adjustTree(n, newLeaf);
 
-        if ( &newNode != nullptr) {
+        if (!newNode.isEmpty()) {
             int oldRootNodeId = rootNodeId;
             Node oldRoot = getNode(oldRootNodeId);
 
@@ -55,7 +53,7 @@ namespace SpatialIndex {
             treeHeight++;
             Node root = Node(rootNodeId, treeHeight, maxNodeEntries);
             root.addEntry(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, newNode.nodeId);
-            root.addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId)
+            root.addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId);
             nodeMap.insert({rootNodeId, root});
         }
     }
@@ -69,7 +67,7 @@ namespace SpatialIndex {
         Node n;
         int foundIndex = -1;
 
-        while (foundIndex == -1 && parents.size() > 0) {
+        while (foundIndex == -1 && !parents.empty()) {
             n = getNode(parents.top());
             int startIndex = parentsEntry.top() + 1;
 
@@ -97,7 +95,7 @@ namespace SpatialIndex {
             parentsEntry.pop();
         }
 
-        if (foundIndex != -1 && &n != nullptr) {
+        if (foundIndex != -1 && !n.isEmpty() ) {
             n.deleteEntry(foundIndex);
             condenseTree(n);
             size--;
@@ -133,7 +131,7 @@ namespace SpatialIndex {
         Node rootNode = getNode(rootNodeId);
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
-        Collections::TIntArrayList nearestIds = Collections::TIntArrayList();
+        Collections::IntVector nearestIds = Collections::IntVector();
         nearest(p, rootNode, furthestDistanceSq, nearestIds);
 
         nearestIds.forEach(v);
@@ -152,7 +150,7 @@ namespace SpatialIndex {
         parentsEntry = std::stack<int>();
         parentsEntry.push(-1);
 
-        Collections::TIntArrayList savedValues = Collections::TIntArrayList();
+        Collections::IntVector savedValues = Collections::IntVector();
         float savedPriority = 0;
 
         // TODO: possible shortcut here - could test for intersection with the
@@ -160,7 +158,7 @@ namespace SpatialIndex {
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
 
-        while (parents.size() > 0) {
+        while (!parents.empty()) {
             Node n = getNode(parents.top());
             int startIndex = parentsEntry.top() + 1;
 
@@ -279,7 +277,7 @@ namespace SpatialIndex {
         // TODO: possible shortcut here - could test for intersection with the
         // MBR of the root node. If no intersection, return immediately.
 
-        while (parents.size() > 0) {
+        while (!parents.empty()) {
             Node n = getNode(parents.top());
             int startIndex = parentsEntry.top() + 1;
 
@@ -289,7 +287,7 @@ namespace SpatialIndex {
                 // could contain entries that are contained.
                 bool intersects = false;
                 for (int i = startIndex; i < n.entryCount; i++) {
-                    if (Rectangle.intersects(r.minX, r.minY, r.maxX, r.maxY,
+                    if (Rectangle::intersects(r.minX, r.minY, r.maxX, r.maxY,
                                              n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i])) {
                         parents.push(n.ids[i]);
                         parentsEntry.pop();
@@ -306,7 +304,7 @@ namespace SpatialIndex {
                 // go through every entry in the leaf to check if
                 // it is contained by the passed rectangle
                 for (int i = 0; i < n.entryCount; i++) {
-                    if (Rectangle.contains(r.minX, r.minY, r.maxX, r.maxY,
+                    if (Rectangle::contains(r.minX, r.minY, r.maxX, r.maxY,
                                            n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i])) {
                         if (!v.execute(n.ids[i])) {
                             return;
@@ -327,7 +325,7 @@ namespace SpatialIndex {
         Rectangle bounds;
 
         Node n = getNode(getRootNodeId());
-        if (&n != nullptr && n.entryCount > 0) {
+        if (!n.isEmpty() && n.entryCount > 0) {
             bounds = Rectangle();
             bounds.minX = n.mbrMinX;
             bounds.minY = n.mbrMinY;
@@ -431,8 +429,8 @@ namespace SpatialIndex {
             }
         }
 
-        float newArea = Rectangle.area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) +
-                        Rectangle.area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY);
+        float newArea = Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) +
+                        Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY);
         float percentageIncrease = (100 * (newArea - initialArea)) / initialArea;
             std::cout << "Node " << n.nodeId << " split. New area increased by " << percentageIncrease << "%" << std::endl;
 
@@ -586,8 +584,6 @@ namespace SpatialIndex {
         int next = 0;
         int nextGroup = 0;
 
-        maxDifference = -std::numeric_limits<float>::max();
-
         for (int i = 0; i < maxNodeEntries; i++) {
           if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
 
@@ -595,9 +591,9 @@ namespace SpatialIndex {
              std::cerr << "Error: Node " << n.nodeId << ", entry " + i << " is null" << std::endl;
             }
 
-            float nIncrease = Rectangle.enlargement(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY,
+            float nIncrease = Rectangle::enlargement(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY,
                                                     n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i]);
-            float newNodeIncrease = Rectangle.enlargement(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY,
+            float newNodeIncrease = Rectangle::enlargement(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY,
                                                           n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i]);
 
             float difference = std::abs(nIncrease - newNodeIncrease);
@@ -609,9 +605,9 @@ namespace SpatialIndex {
                 nextGroup = 0;
               } else if (newNodeIncrease < nIncrease) {
                 nextGroup = 1;
-              } else if (Rectangle.area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) < Rectangle.area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY)) {
+              } else if (Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) < Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY)) {
                 nextGroup = 0;
-              } else if (Rectangle.area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY) < Rectangle.area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY)) {
+              } else if (Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY) < Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY)) {
                 nextGroup = 1;
               } else if (newNode.entryCount < maxNodeEntries / 2) {
                 nextGroup = 0;
@@ -640,9 +636,9 @@ namespace SpatialIndex {
         return next;
     }
 
-    float RTree::nearest(Point p, Node n, float furthestDistanceSq, Collections::TIntArrayList nearestIds) {
+    float RTree::nearest(Point p, Node n, float furthestDistanceSq, Collections::IntVector nearestIds) {
         for (int i = 0; i < n.entryCount; i++) {
-            float tempDistanceSq = Rectangle.distanceSq(n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i], p.x, p.y);
+            float tempDistanceSq = Rectangle::distanceSq(n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i], p.x, p.y);
             if (n.isLeaf()) { // for leaves, the distance is an actual nearest distance
                 if (tempDistanceSq < furthestDistanceSq) {
                     furthestDistanceSq = tempDistanceSq;
@@ -664,7 +660,7 @@ namespace SpatialIndex {
 
     bool RTree::intersects(Rectangle r, Collections::Procedure v, Node n) {
         for (int i = 0; i < n.entryCount; i++) {
-            if (Rectangle.intersects(r.minX, r.minY, r.maxX, r.maxY, n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i])) {
+            if (Rectangle::intersects(r.minX, r.minY, r.maxX, r.maxY, n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i], n.entriesMaxY[i])) {
                 if (n.isLeaf()) {
                     if (!v.execute(n.ids[i])) {
                         return false;
@@ -680,7 +676,7 @@ namespace SpatialIndex {
         return true;
     }
 
-    void RTree::condenseTree(Node l) {
+    void RTree::condenseTree(const Node& l) {
         // CT1 [Initialize] Set n=l. Set the list of eliminated
         // nodes to be empty.
         Node n = l;
@@ -749,7 +745,7 @@ namespace SpatialIndex {
 
         // CL2 [Leaf check] If N is a leaf, return N
         while (true) {
-            if (&n == nullptr) {
+            if (n.isEmpty()) {
                 std::cerr << "Could not get root node (" << rootNodeId << ")" << std::endl;
             }
 
@@ -760,7 +756,7 @@ namespace SpatialIndex {
             // CL3 [Choose subtree] If N is not at the desired level, let F be the entry in N
             // whose rectangle FI needs least enlargement to include EI. Resolve
             // ties by choosing the entry with the rectangle of smaller area.
-            float leastEnlargement = Rectangle.enlargement(n.entriesMinX[0], n.entriesMinY[0], n.entriesMaxX[0], n.entriesMaxY[0],
+            float leastEnlargement = Rectangle::enlargement(n.entriesMinX[0], n.entriesMinY[0], n.entriesMaxX[0], n.entriesMaxY[0],
                                                            minX, minY, maxX, maxY);
             int index = 0; // index of rectangle in subtree
             for (int i = 1; i < n.entryCount; i++) {
@@ -768,12 +764,12 @@ namespace SpatialIndex {
                 float tempMinY = n.entriesMinY[i];
                 float tempMaxX = n.entriesMaxX[i];
                 float tempMaxY = n.entriesMaxY[i];
-                float tempEnlargement = Rectangle.enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
+                float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
                                                               minX, minY, maxX, maxY);
                 if ((tempEnlargement < leastEnlargement) ||
                     ((tempEnlargement == leastEnlargement) &&
-                     (Rectangle.area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
-                      Rectangle.area(n.entriesMinX[index], n.entriesMinY[index], n.entriesMaxX[index], n.entriesMaxY[index])))) {
+                     (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
+                      Rectangle::area(n.entriesMinX[index], n.entriesMinY[index], n.entriesMaxX[index], n.entriesMaxY[index])))) {
                     index = i;
                     leastEnlargement = tempEnlargement;
                       }
@@ -811,7 +807,7 @@ namespace SpatialIndex {
             }
 
             Node newNode;
-            if (&nn != nullptr) {
+            if (!nn.isEmpty()) {
                 if (parent.entryCount < maxNodeEntries) {
                     parent.addEntry(nn.mbrMinX, nn.mbrMinY, nn.mbrMaxX, nn.mbrMaxY, nn.nodeId);
                 } else {
@@ -836,7 +832,7 @@ namespace SpatialIndex {
     bool RTree::checkConsistency(int nodeId, int expectedLevel, Rectangle expectedMBR) {
         Node n = getNode(nodeId);
 
-        if (&n == nullptr) {
+        if (n.isEmpty()) {
             std::cerr << "Error: Could not read node " << nodeId << std::endl;
             return false;
         }
@@ -880,13 +876,13 @@ namespace SpatialIndex {
             return false;
         }
 
-        if (expectedMBR != NULL && !actualMBR.equals(expectedMBR)) {
+        if (expectedMBR.isEmpty() && !actualMBR.equals(expectedMBR)) {
             std::cerr << "Error: Node " << nodeId << ", expected MBR (from parent) does not equal stored MBR" << std::endl;
             return false;
         }
 
         // Check for corruption where a parent entry is the same object as the child MBR
-        if (expectedMBR != NULL && actualMBR.sameObject(expectedMBR)) {
+        if (expectedMBR.isEmpty() && actualMBR.sameObject(expectedMBR)) {
             std::cerr << "Error: Node " << nodeId << " MBR using same rectangle object as parent's entry" << std::endl;
             return false;
         }
@@ -919,6 +915,4 @@ namespace SpatialIndex {
 
         return mbr;
     }
-
-
 }

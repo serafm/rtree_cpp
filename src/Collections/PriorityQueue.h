@@ -5,14 +5,13 @@
 #ifndef PRIORITYQUEUE_H
 #define PRIORITYQUEUE_H
 #include <vector>
-
-#include "TFloatArrayList.h"
-#include "TIntArrayList.h"
+#include "FloatVector.h"
+#include "IntVector.h"
 
 namespace Collections {
     class PriorityQueue {
     public:
-        PriorityQueue(bool sortOrder);
+        explicit PriorityQueue(bool sortOrder);
         PriorityQueue(bool sortOrder, int initialCapacity);
         bool SORT_ORDER_ASCENDING = true;
         bool SORT_ORDER_DESCENDING = false;
@@ -50,8 +49,8 @@ namespace Collections {
         void setSortOrder(bool sortOrder);
 
     private:
-        TIntArrayList values;
-        TFloatArrayList priorities;
+        IntVector values;
+        FloatVector priorities;
         bool sortOrder = SORT_ORDER_ASCENDING;
         bool INTERNAL_CONSISTENCY_CHECKING = false;
 

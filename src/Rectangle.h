@@ -8,10 +8,10 @@ namespace SpatialIndex {
 
     class Rectangle {
     public:
-        float minX{};
-        float minY{};
-        float maxX{};
-        float maxY{};
+        float minX;
+        float minY;
+        float maxX;
+        float maxY;
 
         Rectangle();
 
@@ -32,6 +32,8 @@ namespace SpatialIndex {
         */
         Rectangle copy() const;
 
+        bool isEmpty() const;
+
         /**
             * Determine whether an edge of this rectangle overlies the equivalent
             * edge of the passed rectangle
@@ -46,6 +48,23 @@ namespace SpatialIndex {
             * @return true if the rectangles intersect, false if they do not intersect
         */
         bool intersects(Rectangle r) const;
+
+        /**
+        * Determine whether or not two rectangles intersect
+        *
+        * @param r1MinX minimum X coordinate of rectangle 1
+        * @param r1MinY minimum Y coordinate of rectangle 1
+        * @param r1MaxX maximum X coordinate of rectangle 1
+        * @param r1MaxY maximum Y coordinate of rectangle 1
+        * @param r2MinX minimum X coordinate of rectangle 2
+        * @param r2MinY minimum Y coordinate of rectangle 2
+        * @param r2MaxX maximum X coordinate of rectangle 2
+        * @param r2MaxY maximum Y coordinate of rectangle 2
+        *
+        * @return true if r1 intersects r2, false otherwise.
+        */
+        static bool intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+                        float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
 
         /**
             * Determine whether this rectangle contains the passed rectangle
@@ -88,7 +107,7 @@ namespace SpatialIndex {
             *
             * @return distance between this rectangle and the passed rectangle
         */
-        float distance(Rectangle r) const;
+        //float distance(Rectangle r) const;
 
         /**
             * Return the distance between a rectangle and a point.

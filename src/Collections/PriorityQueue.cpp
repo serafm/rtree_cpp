@@ -3,7 +3,6 @@
 //
 
 #include "PriorityQueue.h"
-
 #include <iostream>
 #include <ostream>
 
@@ -16,8 +15,8 @@ namespace Collections {
 
     PriorityQueue::PriorityQueue(bool sortOrder, int initialCapacity) {
         this->sortOrder = sortOrder;
-        values = TIntArrayList(initialCapacity);
-        priorities = TFloatArrayList(initialCapacity);
+        values = IntVector(initialCapacity);
+        priorities = FloatVector(initialCapacity);
     }
 
     bool PriorityQueue::sortsEarlierThan(float p1, float p2) const {

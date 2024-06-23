@@ -1,41 +1,41 @@
 //
-// Created by serafm on 7/6/2024.
+// Created by serafm on 8/6/2024.
 //
-#include "TIntArrayList.h"
-#include <vector>
+
+#include "FloatVector.h"
+
 #include <stdexcept>
 
 namespace Collections {
 
-    // Creates a new TIntArrayList instance with the default capacity.
-    TIntArrayList::TIntArrayList() {
-        data = std::vector<int>(DEFAULT_CAPACITY, 0);
+    // Creates a new FloatVector instance with the default capacity.
+    FloatVector::FloatVector() {
+        data = std::vector<float>(DEFAULT_CAPACITY, 0);
     }
 
-    // Creates a new TIntArrayList instance with the specified capacity.
-    TIntArrayList::TIntArrayList(int capacity) {
-        data = std::vector<int>(capacity, 0);
-        position = 0;
+    // Creates a new TFloatArrayList instance with the specified capacity.
+    FloatVector::FloatVector(int capacity) {
+        data = std::vector<float>(capacity, 0);
     }
 
     // Adds value to the end of the list.
-    bool TIntArrayList::add(int value) {
+    bool FloatVector::add(float value) {
         data.push_back(value);
         return true;
     }
 
     // Removes the value at the specified offset.
-    int TIntArrayList::removeAt(int offset) {
+    float FloatVector::removeAt(int offset) {
         if (offset >= data.size()) {
             throw std::out_of_range("Index out of range");
         }
-        int old = get(offset);
+        float old = get(offset);
         data.erase(data.begin() + offset);
         return old;
     }
 
     // Returns the value at the specified offset.
-    int TIntArrayList::get(int offset) {
+    float FloatVector::get(int offset) {
         if (offset >= data.size()) {
             throw std::out_of_range("Index out of range");
         }
@@ -43,27 +43,27 @@ namespace Collections {
     }
 
     // Returns the number of values in the list.
-    int TIntArrayList::size() {
+    int FloatVector::size() const {
         return data.size();
     }
 
     // Sets the value at the specified offset.
-    int TIntArrayList::set(int offset, int value) {
+    float FloatVector::set(int offset, float value) {
         if (offset >= data.size()) {
             throw std::out_of_range("Index out of range");
         }
-        int previous_value = data[offset];
+        float previous_value = data[offset];
         data[offset] = value;
         return previous_value;
     }
 
-    void TIntArrayList::clear() {
+    void FloatVector::clear() {
         clear(DEFAULT_CAPACITY);
     }
 
     // Flushes the internal state of the list, setting the capacity of the empty list to capacity.
-    void TIntArrayList::clear(int capacity) {
-        data = std::vector<int>(capacity);
+    void FloatVector::clear(int capacity) {
+        data = std::vector<float>(capacity);
     }
 
     /** TODO:
@@ -71,18 +71,6 @@ namespace Collections {
     be used as an alternative to the clear() method if you want to recycle a
     list without allocating new backing arrays.
     **/
-    void TIntArrayList::reset() {
-        position = 0;
-        data.clear();
-    }
-
-    bool TIntArrayList::forEach(Procedure procedure) const {
-        for (int i = position; i-- > 0;) {
-            if (!procedure.execute(data[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-}
+    void FloatVector::reset() {}
+    
+} // DataStructures

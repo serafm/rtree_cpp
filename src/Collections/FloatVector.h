@@ -2,23 +2,25 @@
 // Created by serafm on 8/6/2024.
 //
 
-#ifndef TFLOATARRAYLIST_H
-#define TFLOATARRAYLIST_H
+#ifndef FLOATVECTOR_H
+#define FLOATVECTOR_H
 #include <vector>
 
 namespace Collections {
-    class TFloatArrayList {
+    class FloatVector {
     private:
         int DEFAULT_CAPACITY = 10;
         std::vector<float> data;
+        int position;
+        float no_entry_value;
 
     public:
-        TFloatArrayList();
-        explicit TFloatArrayList(int capacity);
+        FloatVector();
+        explicit FloatVector(int capacity);
         bool add(float value);
         float removeAt(int offset);
         float get(int offset);
-        int size();
+        int size() const;
         float set(int offset, float value);
         void clear();
         void clear(int capacity);
@@ -26,4 +28,4 @@ namespace Collections {
     };
 }
 
-#endif //TFLOATARRAYLIST_H
+#endif //FLOATVECTOR_H

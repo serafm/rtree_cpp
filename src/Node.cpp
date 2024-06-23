@@ -129,4 +129,9 @@ namespace SpatialIndex {
     int Node::getLevel() {
         return level;
     }
+
+    bool Node::isEmpty() const {
+        return level == NULL;
+    }
+
 }

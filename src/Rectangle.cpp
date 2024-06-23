@@ -26,6 +26,10 @@ namespace SpatialIndex {
         return {minX, minY, maxX, maxY};
     }
 
+    bool Rectangle::isEmpty() const {
+        return minX == NULL && maxX == NULL && minY == NULL && maxY == NULL;
+    }
+
     bool Rectangle::edgeOverlaps(Rectangle r) const {
         return minX == r.minX || maxX == r.maxX || minY == r.minY || maxY == r.maxY;
     }
@@ -33,6 +37,12 @@ namespace SpatialIndex {
     bool Rectangle::intersects(Rectangle r) const {
         return maxX >= r.minX && minX <= r.maxX && maxY >= r.minY && minY <= r.maxY;
     }
+
+    bool Rectangle::intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+                                float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
+        return r1MaxX >= r2MinX && r1MinX <= r2MaxX && r1MaxY >= r2MinY && r1MinY <= r2MaxY;
+    }
+
 
     bool Rectangle::contains(Rectangle r) const {
         return maxX >= r.maxX && minX <= r.minX && maxY >= r.maxY && minY <= r.minY;
@@ -50,20 +60,32 @@ namespace SpatialIndex {
     float Rectangle::distance(Point p) const {
         float distanceSquared = 0;
 
+        // Calculate the distance in the X direction.
         float temp = minX - p.x;
+
+        // If temp is negative, the point is to the right of minX.
+        // Adjust temp to be the distance from p.x to maxX.
         if (temp < 0) {
             temp = p.x - maxX;
         }
 
+        // If temp is still positive, the point is outside the rectangle in the X direction.
+        // Add the square of the X distance to the total distance squared.
         if (temp > 0) {
             distanceSquared += (temp * temp);
         }
 
+        // Calculate the distance in the Y direction.
         temp = minY - p.y;
+
+        // If temp is negative, the point is above minY.
+        // Adjust temp to be the distance from p.y to maxY.
         if (temp < 0) {
             temp = p.y - maxY;
         }
 
+        // If temp is still positive, the point is outside the rectangle in the Y direction.
+        // Add the square of the Y distance to the total distance squared.
         if (temp > 0) {
             distanceSquared += (temp * temp);
         }
@@ -98,7 +120,7 @@ namespace SpatialIndex {
         return distanceSqX + distanceSqY;
     }
 
-    float Rectangle::distance(Rectangle r) const {
+    /*float Rectangle::distance(Rectangle r) const {
         float distanceSquared = 0;
         float greatestMin = std::max(minX, r.minX);
         float leastMax = std::min(maxX, r.maxX);
@@ -111,7 +133,7 @@ namespace SpatialIndex {
             distanceSquared += (greatestMin - leastMax) * (greatestMin - leastMax);
         }
         return std::sqrt(distanceSquared);
-    }
+    }*/
 
     float Rectangle::enlargement(Rectangle r) {
         float enlargedArea = ( std::max(maxX, r.maxX) - std::min(minX, r.minX) ) *
@@ -211,19 +233,4 @@ namespace SpatialIndex {
     Point Rectangle::centre() const {
         return {(minX + maxX) / 2, (minY + maxY) / 2};
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
