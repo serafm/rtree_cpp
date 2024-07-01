@@ -97,6 +97,12 @@ build CMakeFiles/rtree_cpp_v2.dir/src/Collections/FloatVector.cpp.o: CXX_COMPILE
   OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
   OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src/Collections
 
+build CMakeFiles/rtree_cpp_v2.dir/src/Collections/Procedure.cpp.o: CXX_COMPILER__rtree_cpp_v2_unscanned_Debug /home/serafm/dev/rtree-cpp-v2/src/Collections/Procedure.cpp || cmake_object_order_depends_target_rtree_cpp_v2
+  DEP_FILE = CMakeFiles/rtree_cpp_v2.dir/src/Collections/Procedure.cpp.o.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
+  OBJECT_FILE_DIR = CMakeFiles/rtree_cpp_v2.dir/src/Collections
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target rtree_cpp_v2
@@ -105,7 +111,7 @@ build CMakeFiles/rtree_cpp_v2.dir/src/Collections/FloatVector.cpp.o: CXX_COMPILE
 #############################################
 # Link the executable rtree_cpp_v2
 
-build rtree_cpp_v2: CXX_EXECUTABLE_LINKER__rtree_cpp_v2_Debug CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/PriorityQueue.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/IntVector.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/FloatVector.cpp.o
+build rtree_cpp_v2: CXX_EXECUTABLE_LINKER__rtree_cpp_v2_Debug CMakeFiles/rtree_cpp_v2.dir/src/Rectangle.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Main.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Node.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Point.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/PriorityQueue.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/IntVector.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/FloatVector.cpp.o CMakeFiles/rtree_cpp_v2.dir/src/Collections/Procedure.cpp.o
   FLAGS = -g
   OBJECT_DIR = CMakeFiles/rtree_cpp_v2.dir
   POST_BUILD = :

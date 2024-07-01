@@ -6,7 +6,7 @@
 #define INTVECTOR_H
 #include <vector>
 
-#include "Procedure.h"
+#include "Procedure.cpp"
 
 namespace Collections {
     class IntVector {

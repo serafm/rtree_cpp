@@ -1,13 +1,14 @@
 #ifndef RTREE_H
 #define RTREE_H
 
-#include "Node.h"
 #include <vector>
 #include <stack>
 #include <unordered_map>
+
+#include "Node.h"
 #include "Point.h"
 #include "Rectangle.h"
-#include "Collections/Procedure.h"
+#include "Collections/Procedure.cpp"
 
 namespace Collections {
     class IntVector;
@@ -49,8 +50,8 @@ namespace SpatialIndex {
         static Rectangle calculateMBR(Node n);
 
     public:
-        int maxNodeEntries;
-        int minNodeEntries;
+        int maxNodeEntries{};
+        int minNodeEntries{};
 
         RTree() = default;
         void init();

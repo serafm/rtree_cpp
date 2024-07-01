@@ -19,4 +19,5 @@ add_executable(rtree_cpp_v2
         src/Collections/IntVector.h
         src/Collections/FloatVector.cpp
         src/Collections/FloatVector.h
-        src/Collections/Procedure.h)
+        src/Collections/Procedure.cpp
+        src/Collections/Procedure.cpp)

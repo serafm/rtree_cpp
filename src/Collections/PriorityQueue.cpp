@@ -10,7 +10,7 @@ namespace Collections {
 
 
     PriorityQueue::PriorityQueue(bool sortOrder) {
-        this->PriorityQueue::PriorityQueue(sortOrder, 10);
+        PriorityQueue(sortOrder, 10);
     }
 
     PriorityQueue::PriorityQueue(bool sortOrder, int initialCapacity) {

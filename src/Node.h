@@ -2,27 +2,30 @@
 #define NODE_H
 
 #include <limits>
+#include <optional>
 #include <vector>
-#include "RTree.h"
 
 namespace SpatialIndex {
 
+    class RTree;
     class Node {
     public:
+        struct Entry {
+            float minX, minY, maxX, maxY;
+            int id;
+        };
+
         int nodeId = 0;
         float mbrMinX = std::numeric_limits<float>::max();
         float mbrMinY = std::numeric_limits<float>::max();
         float mbrMaxX = std::numeric_limits<float>::min();
         float mbrMaxY = std::numeric_limits<float>::min();
 
-        std::vector<float> entriesMinX;
-        std::vector<float> entriesMinY;
-        std::vector<float> entriesMaxX;
-        std::vector<float> entriesMaxY;
+        std::vector<Entry> entries;
 
         std::vector<int> ids;
-        int level;
-        int entryCount;
+        int level = 0;
+        int entryCount = 0;
 
         Node(int nodeId, int level, int maxNodeEntries);
         Node() = default;
@@ -32,12 +35,12 @@ namespace SpatialIndex {
         void deleteEntry(int i);
         void recalculateMBRIfInfluencedBy(float deletedMinX, float deletedMinY, float deletedMaxX, float deletedMaxY);
         void recalculateMBR();
-        void reorganize(RTree rtree);
-        int getEntryCount();
-        int getId(int index);
-        bool isLeaf();
-        int getLevel();
-        bool isEmpty() const;
+        void reorganize(RTree* rtree);
+        int getEntryCount() const;
+        [[nodiscard]] int getId(int index) const;
+        [[nodiscard]] bool isLeaf() const;
+        [[nodiscard]] int getLevel() const;
+        [[nodiscard]] bool isEmpty() const;
     };
 
 }
