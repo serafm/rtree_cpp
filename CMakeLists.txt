@@ -3,6 +3,10 @@ project(rtree_cpp_v2)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Add Google Test
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
 add_executable(rtree_cpp_v2
         src/Node.h
         src/Rectangle.cpp
@@ -20,4 +24,9 @@ add_executable(rtree_cpp_v2
         src/Collections/FloatVector.cpp
         src/Collections/FloatVector.h
         src/Collections/Procedure.cpp
-        src/Collections/Procedure.cpp)
+        src/Collections/Procedure.cpp
+        src/tests/RTreeUnitTest.cpp)
+
+add_executable(RTreeUnitTest ${SOURCES})
+
+target_link_libraries(RTreeUnitTest ${GTEST_LIBRARIES} pthread)

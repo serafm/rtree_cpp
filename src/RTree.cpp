@@ -34,26 +34,38 @@ namespace SpatialIndex {
     }
 
     void RTree::add(float minX, float minY, float maxX, float maxY, int id, int level) {
+        // Choose the appropriate node for insertion based on the provided coordinates and level
         Node n = chooseNode(minX, minY, maxX, maxY, level);
         Node newLeaf;
 
+        // Check if the chosen node has space for the new entry
         if (n.entryCount < maxNodeEntries) {
+            // Add the new entry to the node
             n.addEntry(minX, minY, maxX, maxY, id);
         } else {
+            // If no space, split the node and create a new leaf node
             newLeaf = splitNode(n, minX, minY, maxX, maxY, id);
         }
 
+        // Adjust the tree upwards from the modified node, and get any new node created
         Node newNode = adjustTree(n, newLeaf);
 
+        // If a new node is created, handle root splitting
         if (!newNode.isEmpty()) {
+            // Save the old root node ID and retrieve the old root node
             int oldRootNodeId = rootNodeId;
             Node oldRoot = getNode(oldRootNodeId);
 
+            // Create a new root node with a new ID and increased tree height
             rootNodeId = getNextNodeId();
             treeHeight++;
             Node root = Node(rootNodeId, treeHeight, maxNodeEntries);
+
+            // Add entries for the new node and the old root to the new root node
             root.addEntry(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, newNode.nodeId);
             root.addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId);
+
+            // Insert the new root node into the node map
             nodeMap.insert({rootNodeId, root});
         }
     }
@@ -153,7 +165,7 @@ namespace SpatialIndex {
         Collections::IntVector savedValues = Collections::IntVector();
         float savedPriority = 0;
 
-        // TODO: possible shortcut here - could test for intersection with the
+        // TODO: possible shortcut here - could tests for intersection with the
         //       MBR of the root node. If no intersection, return immediately.
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
@@ -272,7 +284,7 @@ namespace SpatialIndex {
         parentsEntry = std::stack<int>();
         parentsEntry.push(-1);
 
-        // TODO: possible shortcut here - could test for intersection with the
+        // TODO: possible shortcut here - could tests for intersection with the
         // MBR of the root node. If no intersection, return immediately.
 
         while (!parents.empty()) {
