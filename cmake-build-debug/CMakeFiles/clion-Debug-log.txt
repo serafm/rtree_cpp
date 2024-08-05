@@ -1,4 +1,4 @@
-/home/serafm/.local/share/JetBrains/Toolbox/apps/clion/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /home/serafm/dev/test/rtree_cpp_v2 -B /home/serafm/dev/test/rtree_cpp_v2/cmake-build-debug
+/home/serafm/.local/share/JetBrains/Toolbox/apps/clion/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /home/serafm/dev/rtree_cpp_v2 -B /home/serafm/dev/rtree_cpp_v2/cmake-build-debug
 CMake Deprecation Warning:
   Support for "Extra Generators" like
 
@@ -21,7 +21,7 @@ CMake Deprecation Warning:
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 -- Found GTest: /usr/lib/x86_64-linux-gnu/cmake/GTest/GTestConfig.cmake (found version "1.11.0")  
--- Configuring done (0.5s)
+-- Configuring done (0.4s)
 CMake Error at CMakeLists.txt:30 (add_executable):
   No SOURCES given to target: RTreeUnitTest
 

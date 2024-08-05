@@ -1,9 +1,10 @@
+#pragma once
+
 #ifndef POINT_H
 #define POINT_H
-#include <cmath>
 #include <string>
 
-namespace SpatialIndex {
+namespace rtree {
 
     class Point {
     public:
@@ -25,7 +26,7 @@ namespace SpatialIndex {
         /**
         * Copy from another point into this one
         */
-        void set(Point other);
+        void set(Point& other);
 
         /**
         * Print as a string in format "(x, y)"

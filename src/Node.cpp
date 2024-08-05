@@ -1,22 +1,30 @@
 #include "Node.h"
 #include <cstddef>
+#include <iostream>
 #include "RTree.h"
 
-namespace SpatialIndex {
+namespace rtree {
 
     class RTree;
 
-    Node::Node(int nodeId, int level, int maxNodeEntries) :
-        nodeId(nodeId), level(level), entries(maxNodeEntries) {
+    Node::Node(uint32_t id, int level) :
+        nodeId(id), level(level) {
         // Preallocate space for entries if known at construction
-        entries.reserve(maxNodeEntries);
+        // entries.reserve(maxNodeEntries);
     }
 
     Node::~Node() = default;
 
-    void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
+    void Node::addEntry(float minX, float minY, float maxX, float maxY, uint32_t id) {
         Entry entry{minX, minY, maxX, maxY, id};
-        entries.insert(entries.begin() + entryCount, entry);
+
+        if (isEmptyOrIncomplete(entry)) {
+            std::cerr << "ERROR: Entry is empty or incomplete!" << std::endl;
+            std::exit(1);
+        }
+
+        entries.push_front(entry);
+        ids.push_back(id);
 
         // Efficiently update MBR only if necessary
         if (entryCount == 0) {
@@ -33,7 +41,7 @@ namespace SpatialIndex {
         entryCount++;
     }
 
-    int Node::findEntry(float minX, float minY, float maxX, float maxY, int id) {
+    int Node::findEntry(float minX, float minY, float maxX, float maxY, uint32_t id) {
         for (Entry entry : entries) {
             if (id == entry.id && entry.minX == minX && entry.minY == minY && entry.maxX == maxX && entry.maxY == maxY) {
                 std::cout << "Entry found with ID: " << entry.id << std::endl;
@@ -61,14 +69,7 @@ namespace SpatialIndex {
 
     void Node::recalculateMBRIfInfluencedBy(float deletedMinX, float deletedMinY, float deletedMaxX, float deletedMaxY) {
         if (mbrMinX == deletedMinX || mbrMinY == deletedMinY || mbrMaxX == deletedMaxX || mbrMaxY == deletedMaxY) {
-            mbrMaxX = mbrMaxY = std::numeric_limits<float>::lowest();
-            mbrMinX = mbrMinY = std::numeric_limits<float>::max();
-            for (Entry entry: entries) {
-                mbrMaxX = std::max(mbrMaxX, entry.maxX);
-                mbrMaxY = std::max(mbrMaxY, entry.maxY);
-                mbrMinX = std::min(mbrMinX, entry.minX);
-                mbrMinY = std::min(mbrMinY, entry.minY);
-            }
+            recalculateMBR();
         }
     }
 
@@ -83,8 +84,8 @@ namespace SpatialIndex {
         }
     }
 
-    void Node::reorganize(RTree* rtree) {
-        int countdownIndex = rtree->maxNodeEntries - 1;
+    void Node::reorganize(int maxNodeEntries) {
+        int countdownIndex = maxNodeEntries - 1;
         for (int index = 0; index < entryCount; index++) {
             if (ids[index] == -1) {
                 while (ids[countdownIndex] == -1 && countdownIndex > index) {
@@ -104,11 +105,15 @@ namespace SpatialIndex {
         return entryCount;
     }
 
-    int Node::getId(int index) const {
-        if (index < entryCount) {
-            return ids[index];
+    void Node::getNodeEntries() {
+        for (int i = 0; i < entryCount; i++) {
+            std::cout << "Entry " << i << ": (" << entries[i].minX << ", " << entries[i].minY << ") - ("
+                      << entries[i].maxX << ", " << entries[i].maxY << ") with ID: " << ids[i] << std::endl;
         }
-        return -1;
+    }
+
+    uint32_t Node::getNodeId() const {
+        return nodeId;
     }
 
     bool Node::isLeaf() const {
@@ -121,6 +126,13 @@ namespace SpatialIndex {
 
     bool Node::isEmpty() const {
         return level == 0;
+    }
+
+    bool Node::isEmptyOrIncomplete(Entry& entry) {
+        if (entry.id == NULL || entry.minX == 0 || entry.maxX == 0 || entry.minY == 0 || entry.maxY == 0) {
+            return true;
+        }
+        return false;
     }
 
 }

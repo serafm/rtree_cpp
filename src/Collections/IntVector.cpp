@@ -1,6 +1,3 @@
-//
-// Created by serafm on 7/6/2024.
-//
 #include "IntVector.h"
 #include <vector>
 #include <stdexcept>
@@ -19,8 +16,8 @@ namespace Collections {
     }
 
     // Adds value to the end of the list.
-    bool IntVector::add(int value) {
-        data.push_back(value);
+    bool IntVector::add(uint32_t value) {
+        data.insert(data.begin(), value);
         return true;
     }
 
@@ -74,15 +71,6 @@ namespace Collections {
     void IntVector::reset() {
         position = 0;
         data.clear();
-    }
-
-    bool IntVector::forEach(Procedure procedure) const {
-        for (int i = position; i-- > 0;) {
-            if (!procedure.execute(data[i])) {
-                return false;
-            }
-        }
-        return true;
     }
 
 }

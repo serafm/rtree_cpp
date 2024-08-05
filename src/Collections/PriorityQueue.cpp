@@ -1,7 +1,3 @@
-//
-// Created by serafm on 7/6/2024.
-//
-
 #include "PriorityQueue.h"
 #include <iostream>
 #include <ostream>
@@ -26,7 +22,7 @@ namespace Collections {
         return p1 > p2;
     }
 
-    void PriorityQueue::insert(int value, float priority) {
+    void PriorityQueue::insert(uint32_t value, float priority) {
         values.add(value);
         priorities.add(priority);
 

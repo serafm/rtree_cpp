@@ -1,10 +1,12 @@
+#pragma once
+
 #ifndef RECTANGLE_H
 #define RECTANGLE_H
 
 #include <string>
 #include "Point.h"
 
-namespace SpatialIndex {
+namespace rtree {
 
     class Rectangle {
     public:
@@ -38,7 +40,7 @@ namespace SpatialIndex {
             * Determine whether an edge of this rectangle overlies the equivalent
             * edge of the passed rectangle
         */
-        bool edgeOverlaps(Rectangle r) const;
+        bool edgeOverlaps(Rectangle& r) const;
 
         /**
             * Determine whether this rectangle intersects the passed rectangle
@@ -47,7 +49,7 @@ namespace SpatialIndex {
             *
             * @return true if the rectangles intersect, false if they do not intersect
         */
-        bool intersects(Rectangle r) const;
+        bool intersects(Rectangle& r) const;
 
         /**
         * Determine whether or not two rectangles intersect
@@ -74,7 +76,7 @@ namespace SpatialIndex {
             * @return true if this rectangle contains the passed rectangle, false if
             *         it does not
         */
-        bool contains(Rectangle r) const;
+        bool contains(Rectangle& r) const;
 
         static bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                                  float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
@@ -87,7 +89,7 @@ namespace SpatialIndex {
             * @return true if the passed rectangle contains this rectangle, false if
             *         it does not
         */
-        bool containedBy(Rectangle r) const;
+        bool containedBy(Rectangle& r) const;
 
         /**
             * Return the distance between this rectangle and the passed point.
@@ -97,7 +99,7 @@ namespace SpatialIndex {
             *
             * @return distance beween this rectangle and the passed point.
         */
-        float distance(Point p) const;
+        float distance(Point& p) const;
 
         /**
             * Return the distance between this rectangle and the passed rectangle.
@@ -137,7 +139,7 @@ namespace SpatialIndex {
             *
             * @return enlargement
         */
-        float enlargement(Rectangle r);
+        float enlargement(Rectangle& r);
 
         /**
             * Calculate the area by which a rectangle would be enlarged if
@@ -198,7 +200,7 @@ namespace SpatialIndex {
             *
             * @param r The rectangle to union with this rectangle
         */
-        Rectangle findUnion(Rectangle r) const;
+        Rectangle findUnion(Rectangle& r) const;
 
         union FloatIntUnion {
             float f;
@@ -215,7 +217,7 @@ namespace SpatialIndex {
             *
             * @param o The object to compare with this rectangle
         */
-        bool equals(Rectangle r) const;
+        bool equals(Rectangle& r) const;
 
         /**
             * Determine whether this rectangle is the same as another object
@@ -225,7 +227,7 @@ namespace SpatialIndex {
             *
             * @param o The object to compare with this rectangle.
         */
-        bool sameObject(Rectangle r);
+        bool sameObject(Rectangle& r);
 
         /**
             * Return a string representation of this rectangle, in the form:
@@ -242,6 +244,9 @@ namespace SpatialIndex {
         float aspectRatio() const;
 
         Point centre() const;
+
+        static void adjustMBR(Rectangle& rect, float childMinX, float childMinY, float childMaxX, float childMaxY);
+
     };
 }
 #endif // RECTANGLE_H
