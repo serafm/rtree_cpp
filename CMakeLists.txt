@@ -22,11 +22,4 @@ add_executable(rtree_cpp_v2
         src/Collections/IntVector.cpp
         src/Collections/IntVector.h
         src/Collections/FloatVector.cpp
-        src/Collections/FloatVector.h
-        src/Collections/Procedure.cpp
-        src/Collections/Procedure.cpp
-        src/tests/RTreeUnitTest.cpp)
-
-add_executable(RTreeUnitTest ${SOURCES})
-
-target_link_libraries(RTreeUnitTest ${GTEST_LIBRARIES} pthread)
+        src/Collections/FloatVector.h)
