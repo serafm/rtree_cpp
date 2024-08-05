@@ -1,9 +1,4 @@
-//
-// Created by serafm on 8/6/2024.
-//
-
 #include "FloatVector.h"
-
 #include <stdexcept>
 
 namespace Collections {

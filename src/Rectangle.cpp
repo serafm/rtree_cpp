@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace SpatialIndex {
+namespace rtree {
 
     Rectangle::Rectangle() {
         this->minX = std::numeric_limits<float>::max();
@@ -18,23 +18,19 @@ namespace SpatialIndex {
         this->maxY = std::max(y1, y2);
     }
 
-    void set(Rectangle r) {
-        // TODO: Sets the size of this rectangle to equal the passed rectangle.
-    }
-
     Rectangle Rectangle::copy() const {
         return {minX, minY, maxX, maxY};
     }
 
     bool Rectangle::isEmpty() const {
-        return minX == NULL && maxX == NULL && minY == NULL && maxY == NULL;
+        return minX == 0 && maxX == 0 && minY == 0 && maxY == 0;
     }
 
-    bool Rectangle::edgeOverlaps(Rectangle r) const {
+    bool Rectangle::edgeOverlaps(Rectangle& r) const {
         return minX == r.minX || maxX == r.maxX || minY == r.minY || maxY == r.maxY;
     }
 
-    bool Rectangle::intersects(Rectangle r) const {
+    bool Rectangle::intersects(Rectangle& r) const {
         return maxX >= r.minX && minX <= r.maxX && maxY >= r.minY && minY <= r.maxY;
     }
 
@@ -44,7 +40,7 @@ namespace SpatialIndex {
     }
 
 
-    bool Rectangle::contains(Rectangle r) const {
+    bool Rectangle::contains(Rectangle& r) const {
         return maxX >= r.maxX && minX <= r.minX && maxY >= r.maxY && minY <= r.minY;
     }
 
@@ -53,11 +49,11 @@ namespace SpatialIndex {
         return r1MaxX >= r2MaxX && r1MinX <= r2MinX && r1MaxY >= r2MaxY && r1MinY <= r2MinY;
     }
 
-    bool Rectangle::containedBy(Rectangle r) const {
+    bool Rectangle::containedBy(Rectangle& r) const {
         return r.maxX >= maxX && r.minX <= minX && r.maxY >= maxY && r.minY <= minY;
     }
 
-    float Rectangle::distance(Point p) const {
+    float Rectangle::distance(Point& p) const {
         float distanceSquared = 0;
 
         // Calculate the distance in the X direction.
@@ -93,9 +89,9 @@ namespace SpatialIndex {
         return std::sqrt(distanceSquared);
     }
 
-    float Rectangle::distance(float minX, float minY, float maxX, float maxY, float pX, float pY) {
+    /*float Rectangle::distance(float minX, float minY, float maxX, float maxY, float pX, float pY) {
         return std::sqrt(distanceSq(minX, minY, maxX, maxY, pX, pY));
-    }
+    }*/
 
     float Rectangle::distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY) {
         float distanceSqX = 0;
@@ -117,7 +113,7 @@ namespace SpatialIndex {
             distanceSqY *= distanceSqY;
         }
 
-        return distanceSqX + distanceSqY;
+        return std::sqrt(distanceSqX + distanceSqY);
     }
 
     /*float Rectangle::distance(Rectangle r) const {
@@ -135,7 +131,7 @@ namespace SpatialIndex {
         return std::sqrt(distanceSquared);
     }*/
 
-    float Rectangle::enlargement(Rectangle r) {
+    float Rectangle::enlargement(Rectangle& r) {
         float enlargedArea = ( std::max(maxX, r.maxX) - std::min(minX, r.minX) ) *
                              ( std::max(maxY, r.maxY) - std::min(minY, r.minY) );
         return enlargedArea - area();
@@ -184,7 +180,7 @@ namespace SpatialIndex {
         if (p.y > maxY) maxY = p.y;
     }
 
-    Rectangle Rectangle::findUnion(Rectangle r) const {
+    Rectangle Rectangle::findUnion(Rectangle& r) const {
         Rectangle union_ = this->copy();
         union_.add(r);
         return union_;
@@ -206,16 +202,17 @@ namespace SpatialIndex {
         return result;
     }
 
-    bool Rectangle::equals(Rectangle r) const {
+    bool Rectangle::equals(Rectangle& r) const {
         return maxX == r.maxX && maxY == r.maxY && minX == r.minX && minY == r.minY;
     }
 
-    bool Rectangle::sameObject(Rectangle r) {
+    bool Rectangle::sameObject(Rectangle& r) {
         // TODO: The object to compare with this rectangle.
+        return true;
     }
 
     std::string Rectangle::toString() {
-        // TODO: return string
+        return "";
     }
 
     float Rectangle::width() const {
@@ -232,5 +229,13 @@ namespace SpatialIndex {
 
     Point Rectangle::centre() const {
         return {(minX + maxX) / 2, (minY + maxY) / 2};
+    }
+
+    // Adjusts the rectangle to include the area specified by the provided coordinates
+    static void adjustMBR(Rectangle& rect, float childMinX, float childMinY, float childMaxX, float childMaxY) {
+        rect.minX = std::min(rect.minX, childMinX);
+        rect.minY = std::min(rect.minY, childMinY);
+        rect.maxX = std::max(rect.maxX, childMaxX);
+        rect.maxY = std::max(rect.maxY, childMaxY);
     }
 }

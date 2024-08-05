@@ -1,10 +1,8 @@
-//
-// Created by serafm on 7/6/2024.
-//
+#pragma once
 
 #ifndef PRIORITYQUEUE_H
 #define PRIORITYQUEUE_H
-#include <vector>
+#include <cstdint>
 #include "FloatVector.h"
 #include "IntVector.h"
 
@@ -21,7 +19,7 @@ namespace Collections {
         * @param value The value to insert.
         * @param priority The priority of the value.
         */
-        void insert(int value, float priority);
+        void insert(uint32_t value, float priority);
 
 
         int size();

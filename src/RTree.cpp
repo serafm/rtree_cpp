@@ -1,5 +1,4 @@
 #include "RTree.h"
-#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <vector>
@@ -8,85 +7,63 @@
 #include "Collections/PriorityQueue.h"
 #include "Rectangle.h"
 
-namespace SpatialIndex {
+namespace rtree {
 
-    void RTree::init() {
-        maxNodeEntries = DEFAULT_MAX_NODE_ENTRIES;
-        minNodeEntries = DEFAULT_MIN_NODE_ENTRIES;
-        entryStatus = std::vector<int8_t>(maxNodeEntries);
-        initialEntryStatus = std::vector<int8_t>(maxNodeEntries);
-
-        for (int i = 0; i < maxNodeEntries; i++) {
-            initialEntryStatus[i] = ENTRY_STATUS_UNASSIGNED;
-        }
-
-        Node root = Node(rootNodeId, 1, maxNodeEntries);
-        nodeMap.insert({rootNodeId, root});
-    }
-
-    void RTree::add(Rectangle r, int id) {
+    void RTree::add(Rectangle& r, uint32_t id) {
         add(r.minX, r.minY, r.maxX, r.maxY, id, 1);
-        size++;
+        ++size;
 
         if (INTERNAL_CONSISTENCY_CHECKING) {
             checkConsistency();
         }
     }
 
-    void RTree::add(float minX, float minY, float maxX, float maxY, int id, int level) {
-        // Choose the appropriate node for insertion based on the provided coordinates and level
-        Node n = chooseNode(minX, minY, maxX, maxY, level);
-        Node newLeaf;
+    void RTree::add(float minX, float minY, float maxX, float maxY, uint32_t id, int level) {
+        Node& n = chooseNode(minX, minY, maxX, maxY, level);
+        Node* newLeaf;
 
-        // Check if the chosen node has space for the new entry
+        // Check if leaf node has space for new entry
         if (n.entryCount < maxNodeEntries) {
-            // Add the new entry to the node
             n.addEntry(minX, minY, maxX, maxY, id);
+            nodeMap.insert({n.getNodeId(), &n});
         } else {
-            // If no space, split the node and create a new leaf node
             newLeaf = splitNode(n, minX, minY, maxX, maxY, id);
         }
 
-        // Adjust the tree upwards from the modified node, and get any new node created
-        Node newNode = adjustTree(n, newLeaf);
+        Node* newNode = adjustTree(n, newLeaf);
 
-        // If a new node is created, handle root splitting
-        if (!newNode.isEmpty()) {
-            // Save the old root node ID and retrieve the old root node
-            int oldRootNodeId = rootNodeId;
-            Node oldRoot = getNode(oldRootNodeId);
+        if (!newNode->isEmpty()) {
+            uint32_t oldRootNodeId = rootNodeId;
+            Node& oldRoot = getNode(oldRootNodeId);
 
-            // Create a new root node with a new ID and increased tree height
             rootNodeId = getNextNodeId();
-            treeHeight++;
-            Node root = Node(rootNodeId, treeHeight, maxNodeEntries);
+            ++treeHeight;
+            Node root(rootNodeId, treeHeight);
 
-            // Add entries for the new node and the old root to the new root node
-            root.addEntry(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, newNode.nodeId);
+            root.addEntry(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY, newNode->nodeId);
             root.addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId);
 
-            // Insert the new root node into the node map
-            nodeMap.insert({rootNodeId, root});
+            nodeMap.erase(rootNodeId);
+            nodeMap.emplace(rootNodeId, &root);
         }
     }
 
-    bool RTree::del(Rectangle r, int id) {
-        parents = std::stack<int>();
+    bool RTree::del(Rectangle& r, uint32_t id) {
+        parents = std::stack<uint32_t>();
         parents.push(rootNodeId);
 
-        parentsEntry = std::stack<int>();
+        parentsEntry = std::stack<uint32_t>();
         parentsEntry.push(-1);
-        Node n;
+        Node& n = getNode(parents.top());
         int foundIndex = -1;
 
         while (foundIndex == -1 && !parents.empty()) {
-            n = getNode(parents.top());
-            int startIndex = parentsEntry.top() + 1;
+            uint32_t startIndex = parentsEntry.top() + 1;
 
             if (!n.isLeaf()) {
                 bool contains = false;
-                for (int i = startIndex; i < n.entryCount; i++) {
-                    if (r.contains(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY,
+                for (uint32_t i = startIndex; i < n.entryCount; i++) {
+                    if (Rectangle::contains(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY,
                      r.minX, r.minY, r.maxX, r.maxY)) {
                         parents.push(n.ids[i]);
                         parentsEntry.pop();
@@ -113,7 +90,7 @@ namespace SpatialIndex {
             size--;
         }
 
-        Node root = getNode(rootNodeId);
+        Node& root = getNode(rootNodeId);
         while (root.entryCount == 1 && treeHeight > 1) {
             deletedNodeIds.push(rootNodeId);
             root.entryCount = 0;
@@ -139,27 +116,29 @@ namespace SpatialIndex {
         return (foundIndex != -1);
     }
 
-    void RTree::nearest(Point p, Collections::Procedure v, float furthestDistance) {
-        Node rootNode = getNode(rootNodeId);
+    void RTree::nearest(Point& p, float furthestDistance) {
+        Node& rootNode = getNode(rootNodeId);
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
         Collections::IntVector nearestIds = Collections::IntVector();
         nearest(p, rootNode, furthestDistanceSq, nearestIds);
-
-        nearestIds.forEach(v);
+        std::cout << "Nearest rectangles to point (" << p.x << "," << p.y << ") are: " << std::endl;
+        for (int i = 0; i < nearestIds.size(); i++) {
+            std::cout << "Rectangle ID: " << nearestIds.get(i) << std::endl;
+        }
         nearestIds.reset();
     }
 
-    void RTree::createNearestNDistanceQueue(Point p, int count, Collections::PriorityQueue distanceQueue, float furthestDistance) {
+    void RTree::createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance) {
         //  return immediately if given an invalid "count" parameter
         if (count <= 0) {
             return;
         }
 
-        parents = std::stack<int>();
+        parents = std::stack<uint32_t>();
         parents.push(rootNodeId);
 
-        parentsEntry = std::stack<int>();
+        parentsEntry = std::stack<uint32_t>();
         parentsEntry.push(-1);
 
         Collections::IntVector savedValues = Collections::IntVector();
@@ -171,16 +150,16 @@ namespace SpatialIndex {
         float furthestDistanceSq = furthestDistance * furthestDistance;
 
         while (!parents.empty()) {
-            Node n = getNode(parents.top());
-            int startIndex = parentsEntry.top() + 1;
+            Node& n = getNode(parents.top());
+            uint32_t startIndex = parentsEntry.top() + 1;
 
             if (!n.isLeaf()) {
                 // go through every entry in the index node to check
                 // if it could contain an entry closer than the farthest entry
                 // currently stored.
                 bool near = false;
-                for (int i = startIndex; i < n.entryCount; i++) {
-                    if (SpatialIndex::Rectangle::distanceSq(n.entries[i].minX, n.entries[i].minY,
+                for (uint32_t i = startIndex; i < n.entryCount; i++) {
+                    if (Rectangle::distanceSq(n.entries[i].minX, n.entries[i].minY,
                                            n.entries[i].maxX, n.entries[i].maxY,
                                            p.x, p.y) <= furthestDistanceSq) {
                         parents.push(n.ids[i]);
@@ -198,8 +177,8 @@ namespace SpatialIndex {
                 // go through every entry in the leaf to check if
                 // it is currently one of the nearest N entries.
                 for (int i = 0; i < n.entryCount; i++) {
-                    float entryDistanceSq = SpatialIndex::Rectangle::distanceSq(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, p.x, p.y);
-                    int entryId = n.ids[i];
+                    float entryDistanceSq = Rectangle::distanceSq(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, p.x, p.y);
+                    uint32_t entryId = n.ids[i];
 
                     if (entryDistanceSq <= furthestDistanceSq) {
                         distanceQueue.insert(entryId, entryDistanceSq);
@@ -240,7 +219,7 @@ namespace SpatialIndex {
         }
     }
 
-    void RTree::nearestNUnsorted(Point p, Collections::Procedure v, int count, float furthestDistance) {
+    void RTree::nearestNUnsorted(Point& p, int count, float furthestDistance) {
         // This implementation is designed to give good performance
         // where
         //   o N is high (100+)
@@ -253,42 +232,52 @@ namespace SpatialIndex {
         Collections::PriorityQueue distanceQueue = Collections::PriorityQueue(false);
         createNearestNDistanceQueue(p, count, distanceQueue, furthestDistance);
 
-        while (distanceQueue.size() > 0) {
-            v.execute(distanceQueue.getValue());
+        auto response = [&]() {
+            // Here we simply print to console instead of logging
+            std::cout << "Rectangle with distance= " << distanceQueue.getValue() << std::endl;
             distanceQueue.pop();
+        };
+
+        while (distanceQueue.size() > 0) {
+            response();
         }
     }
 
-    void RTree::nearestN(Point p, Collections::Procedure v, int count, float furthestDistance) {
+    void RTree::nearestN(Point& p, int count, float furthestDistance) {
         Collections::PriorityQueue distanceQueue = Collections::PriorityQueue(false);
         createNearestNDistanceQueue(p, count, distanceQueue, furthestDistance);
         distanceQueue.setSortOrder(true);
 
-        while (distanceQueue.size() > 0) {
-            v.execute(distanceQueue.getValue());
+        auto response = [&]() {
+            // Here we simply print to console instead of logging
+            std::cout << "Rectangle with distance= " << distanceQueue.getValue() << std::endl;
             distanceQueue.pop();
+        };
+
+        while (distanceQueue.size() > 0) {
+            response();
         }
     }
 
-    void RTree::intersects(Rectangle r, Collections::Procedure v) {
-        Node rootNode = getNode(rootNodeId);
-        intersects(r, v, rootNode);
+    void RTree::intersects(Rectangle& r) {
+        Node& rootNode = getNode(rootNodeId);
+        intersects(r, rootNode);
     }
 
-    void RTree::contains(Rectangle r, Collections::Procedure v) {
+    void RTree::contains(Rectangle& r) {
         // find all rectangles in the tree that are contained by the passed rectangle
         // written to be non-recursive (should model other searches on this?)
-        parents = std::stack<int>();
+        parents = std::stack<uint32_t>();
         parents.push(rootNodeId);
 
-        parentsEntry = std::stack<int>();
+        parentsEntry = std::stack<uint32_t>();
         parentsEntry.push(-1);
 
         // TODO: possible shortcut here - could tests for intersection with the
         // MBR of the root node. If no intersection, return immediately.
 
         while (!parents.empty()) {
-            Node n = getNode(parents.top());
+            Node& n = getNode(parents.top());
             int startIndex = parentsEntry.top() + 1;
 
             if (!n.isLeaf()) {
@@ -316,10 +305,11 @@ namespace SpatialIndex {
                 for (int i = 0; i < n.entryCount; i++) {
                     if (Rectangle::contains(r.minX, r.minY, r.maxX, r.maxY,
                                            n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY)) {
-                        if (!v.execute(n.ids[i])) {
+                        ids.push_back(n.ids[i]);
+                        /*if (!v.execute(n.ids[i])) {
                             return;
-                        }
-                                           }
+                        }*/
+                    }
                 }
             }
             parents.pop();
@@ -331,7 +321,7 @@ namespace SpatialIndex {
         return size;
     }
 
-    Rectangle RTree::getBounds() {
+    /*Rectangle RTree::getBounds() {
         Rectangle bounds;
 
         Node n = getNode(getRootNodeId());
@@ -343,242 +333,170 @@ namespace SpatialIndex {
             bounds.maxY = n.mbrMaxY;
         }
         return bounds;
-    }
+    }*/
 
-    int RTree::getNextNodeId() {
-        int nextNodeId = 0;
+    uint32_t RTree::getNextNodeId() {
+        uint32_t nextNodeId;
         if (!deletedNodeIds.empty()) {
             nextNodeId = deletedNodeIds.top();
             deletedNodeIds.pop();
         } else {
-            nextNodeId = 1 + highestUsedNodeId++;
+            nextNodeId = highestUsedNodeId + 1;
         }
         return nextNodeId;
     }
 
-    Node RTree::getNode(int id) {
-        return nodeMap.at(id);
+    Node& RTree::getNode(uint32_t id) {
+        return *nodeMap.at(id);
     }
 
-    int RTree::getRootNodeId() const {
+    uint32_t RTree::getRootNodeId() const {
         return rootNodeId;
     }
 
-    Node RTree::splitNode(Node n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId) {
-        // [Pick first entry for each group] Apply algorithm pickSeeds to
-        // choose two entries to be the first elements of the groups. Assign
-        // each to a group.
+    Node* RTree::splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId) {
+    entryStatus.assign(initialEntryStatus.begin(), initialEntryStatus.end());
+    Node* newNode = new Node(getNextNodeId(), n.level);
+    nodeMap.insert({newNode->nodeId, newNode});
 
-        float unionMinX = std::min(n.mbrMinX, newRectMinX);
-        float unionMinY = std::min(n.mbrMinY, newRectMinY);
-        float unionMaxX = std::max(n.mbrMaxX, newRectMaxX);
-        float unionMaxY = std::max(n.mbrMaxY, newRectMaxY);
+    if (newNode != nullptr) {
+        pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, *newNode);
+    } else {
+        std::cerr << "Error: Failed to split node is null" << std::endl;
+        return nullptr;
+    }
 
-        float initialArea = (unionMaxX - unionMinX) * (unionMaxY - unionMinY);
-
-        // Copying vector by assign function
-        entryStatus.assign(initialEntryStatus.begin(), initialEntryStatus.end());
-
-        Node newNode = Node(getNextNodeId(), n.level, maxNodeEntries);
-
-        nodeMap.insert({newNode.nodeId, newNode});
-
-        pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, newNode);
-
-        // [Check if done] If all entries have been assigned, stop. If one
-        // group has so few entries that all the rest must be assigned to it in
-        // order for it to have the minimum number m, assign them and stop.
-        while (n.entryCount + newNode.entryCount < maxNodeEntries + 1) {
-            if (maxNodeEntries + 1 - newNode.entryCount == minNodeEntries) {
-                // assign all remaining entries to original node
-                for (int i = 0; i < maxNodeEntries; i++) {
-                    if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
-                        entryStatus[i] = ENTRY_STATUS_ASSIGNED;
-
-                        if (n.entries[i].minX < n.mbrMinX) n.mbrMinX = n.entries[i].minX;
-                        if (n.entries[i].minY < n.mbrMinY) n.mbrMinY = n.entries[i].minY;
-                        if (n.entries[i].maxX > n.mbrMaxX) n.mbrMaxX = n.entries[i].maxX;
-                        if (n.entries[i].maxY > n.mbrMaxY) n.mbrMaxY = n.entries[i].maxY;
-
-                        n.entryCount++;
-                    }
+    while (n.entryCount + newNode->entryCount < maxNodeEntries + 1) {
+        if (maxNodeEntries + 1 - newNode->entryCount == minNodeEntries) {
+            for (int i = 0; i < maxNodeEntries; i++) {
+                if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                    entryStatus[i] = ENTRY_STATUS_ASSIGNED;
+                    n.addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
                 }
-                break;
             }
-            if (maxNodeEntries + 1 - n.entryCount == minNodeEntries) {
-                // assign all remaining entries to new node
-                for (int i = 0; i < maxNodeEntries; i++) {
-                    if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
-                        entryStatus[i] = ENTRY_STATUS_ASSIGNED;
-                        newNode.addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
-                        n.ids[i] = -1; // an id of -1 indicates the entry is not in use
-                    }
+            break;
+        }
+        if (maxNodeEntries + 1 - n.entryCount == minNodeEntries) {
+            for (int i = 0; i < maxNodeEntries; i++) {
+                if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                    entryStatus[i] = ENTRY_STATUS_ASSIGNED;
+                    newNode->addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
+                    n.ids[i] = -1;
                 }
-                break;
             }
-
-            // [Select entry to assign] Invoke algorithm pickNext to choose the
-            // next entry to assign. Add it to the group whose covering rectangle
-            // will have to be enlarged least to accommodate it. Resolve ties
-            // by adding the entry to the group with smaller area, then to the
-            // the one with fewer entries, then to either. Repeat from S2
-            pickNext(n, newNode);
+            break;
         }
+        pickNext(n, *newNode);
+    }
 
-        n.reorganize(this);
+    n.reorganize(maxNodeEntries);
 
-        // check that the MBR stored for each node is correct.
-        if (INTERNAL_CONSISTENCY_CHECKING) {
-            Rectangle nMBR = Rectangle(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY);
-            if (!nMBR.equals(calculateMBR(n))) {
-                std::cerr << "Error: splitNode old node MBR wrong" << std::endl;
-            }
-            Rectangle newNodeMBR = Rectangle(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY);
-            if (!newNodeMBR.equals(calculateMBR(newNode))) {
-                std::cerr << "Error: splitNode new node MBR wrong" << std::endl;
-            }
+    if (INTERNAL_CONSISTENCY_CHECKING) {
+        Rectangle nMBR = Rectangle(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY);
+        if (!nMBR.equals(calculateMBR(n))) {
+            std::cerr << "Error: splitNode old node MBR wrong" << std::endl;
         }
-
-        float newArea = Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) +
-                        Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY);
-        float percentageIncrease = (100 * (newArea - initialArea)) / initialArea;
-            std::cout << "Node " << n.nodeId << " split. New area increased by " << percentageIncrease << "%" << std::endl;
-
+        Rectangle newNodeMBR = Rectangle(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY);
+        if (!newNodeMBR.equals(calculateMBR(*newNode))) {
+            std::cerr << "Error: splitNode new node MBR wrong" << std::endl;
+        }
+    }
         return newNode;
     }
 
-    void RTree::pickSeeds(Node n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, Node newNode) {
-        // Find extreme rectangles along all dimension. Along each dimension,
-        // find the entry whose rectangle has the highest low side, and the one
-        // with the lowest high side. Record the separation.
-        float maxNormalizedSeparation = -1; // initialize to -1 so that even overlapping rectangles will be considered for the seeds
+    void RTree::pickSeeds(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId, Node& newNode) {
+        float maxNormalizedSeparation = -1;
         int highestLowIndex = -1;
         int lowestHighIndex = -1;
-
-        // for the purposes of picking seeds, take the MBR of the node to include
-        // the new rectangle aswell.
-        if (newRectMinX < n.mbrMinX) n.mbrMinX = newRectMinX;
-        if (newRectMinY < n.mbrMinY) n.mbrMinY = newRectMinY;
-        if (newRectMaxX > n.mbrMaxX) n.mbrMaxX = newRectMaxX;
-        if (newRectMaxY > n.mbrMaxY) n.mbrMaxY = newRectMaxY;
 
         float mbrLenX = n.mbrMaxX - n.mbrMinX;
         float mbrLenY = n.mbrMaxY - n.mbrMinY;
 
         float tempHighestLow = newRectMinX;
-        int tempHighestLowIndex = -1; // -1 indicates the new rectangle is the seed
+        int tempHighestLowIndex = -1;
 
         float tempLowestHigh = newRectMaxX;
-        int tempLowestHighIndex = -1; // -1 indicates the new rectangle is the seed
+        int tempLowestHighIndex = -1;
 
         for (int i = 0; i < n.entryCount; i++) {
-          float tempLow = n.entries[i].minX;
-          if (tempLow >= tempHighestLow) {
-             tempHighestLow = tempLow;
-             tempHighestLowIndex = i;
-          } else {  // ensure that the same index cannot be both lowestHigh and highestLow
-            float tempHigh = n.entries[i].maxX;
-            if (tempHigh <= tempLowestHigh) {
-              tempLowestHigh = tempHigh;
-              tempLowestHighIndex = i;
+            float tempLow = n.entries[i].minX;
+            if (tempLow >= tempHighestLow) {
+                tempHighestLow = tempLow;
+                tempHighestLowIndex = i;
+            } else {
+                float tempHigh = n.entries[i].maxX;
+                if (tempHigh <= tempLowestHigh) {
+                    tempLowestHigh = tempHigh;
+                    tempLowestHighIndex = i;
+                }
             }
-          }
 
-          // PS2 [Adjust for shape of the rectangle cluster] Normalize the separations
-          // by dividing by the widths of the entire set along the corresponding
-          // dimension
-          float normalizedSeparation = mbrLenX == 0 ? 1 : (tempHighestLow - tempLowestHigh) / mbrLenX;
-
-          // PS3 [Select the most extreme pair] Choose the pair with the greatest
-          // normalized separation along any dimension.
-          // Note that if negative it means the rectangles overlapped. However still include
-          // overlapping rectangles if that is the only choice available.
-          if (normalizedSeparation >= maxNormalizedSeparation) {
-            highestLowIndex = tempHighestLowIndex;
-            lowestHighIndex = tempLowestHighIndex;
-            maxNormalizedSeparation = normalizedSeparation;
-          }
+            float normalizedSeparation = mbrLenX == 0 ? 1 : (tempHighestLow - tempLowestHigh) / mbrLenX;
+            if (normalizedSeparation >= maxNormalizedSeparation) {
+                highestLowIndex = tempHighestLowIndex;
+                lowestHighIndex = tempLowestHighIndex;
+                maxNormalizedSeparation = normalizedSeparation;
+            }
         }
 
-        // Repeat for the Y dimension
         tempHighestLow = newRectMinY;
-        tempHighestLowIndex = -1; // -1 indicates the new rectangle is the seed
+        tempHighestLowIndex = -1;
 
         tempLowestHigh = newRectMaxY;
-        tempLowestHighIndex = -1; // -1 indicates the new rectangle is the seed
+        tempLowestHighIndex = -1;
 
         for (int i = 0; i < n.entryCount; i++) {
-          float tempLow = n.entries[i].minY;
-          if (tempLow >= tempHighestLow) {
-             tempHighestLow = tempLow;
-             tempHighestLowIndex = i;
-          } else {  // ensure that the same index cannot be both lowestHigh and highestLow
-            float tempHigh = n.entries[i].maxY;
-            if (tempHigh <= tempLowestHigh) {
-              tempLowestHigh = tempHigh;
-              tempLowestHighIndex = i;
+            float tempLow = n.entries[i].minY;
+            if (tempLow >= tempHighestLow) {
+                tempHighestLow = tempLow;
+                tempHighestLowIndex = i;
+            } else {
+                float tempHigh = n.entries[i].maxY;
+                if (tempHigh <= tempLowestHigh) {
+                    tempLowestHigh = tempHigh;
+                    tempLowestHighIndex = i;
+                }
             }
-          }
 
-          // PS2 [Adjust for shape of the rectangle cluster] Normalize the separations
-          // by dividing by the widths of the entire set along the corresponding
-          // dimension
-          float normalizedSeparation = mbrLenY == 0 ? 1 : (tempHighestLow - tempLowestHigh) / mbrLenY;
-
-          // PS3 [Select the most extreme pair] Choose the pair with the greatest
-          // normalized separation along any dimension.
-          // Note that if negative it means the rectangles overlapped. However still include
-          // overlapping rectangles if that is the only choice available.
-          if (normalizedSeparation >= maxNormalizedSeparation) {
-            highestLowIndex = tempHighestLowIndex;
-            lowestHighIndex = tempLowestHighIndex;
-            maxNormalizedSeparation = normalizedSeparation;
-          }
+            float normalizedSeparation = mbrLenY == 0 ? 1 : (tempHighestLow - tempLowestHigh) / mbrLenY;
+            if (normalizedSeparation >= maxNormalizedSeparation) {
+                highestLowIndex = tempHighestLowIndex;
+                lowestHighIndex = tempLowestHighIndex;
+                maxNormalizedSeparation = normalizedSeparation;
+            }
         }
 
-        // At this point it is possible that the new rectangle is both highestLow and lowestHigh.
-        // This can happen if all rectangles in the node overlap the new rectangle.
-        // Resolve this by declaring that the highestLowIndex is the lowest Y and,
-        // the lowestHighIndex is the largest X (but always a different rectangle)
         if (highestLowIndex == lowestHighIndex) {
-          highestLowIndex = -1;
-          float tempMinY = newRectMinY;
-          lowestHighIndex = 0;
-          float tempMaxX = n.entries[0].maxX;
+            highestLowIndex = -1;
+            float tempMinY = newRectMinY;
+            lowestHighIndex = 0;
+            float tempMaxX = n.entries[0].maxX;
 
-          for (int i = 1; i < n.entryCount; i++) {
-            if (n.entries[i].minY < tempMinY) {
-              tempMinY = n.entries[i].minY;
-              highestLowIndex = i;
+            for (int i = 1; i < n.entryCount; i++) {
+                if (n.entries[i].minY < tempMinY) {
+                    tempMinY = n.entries[i].minY;
+                    highestLowIndex = i;
+                } else if (n.entries[i].maxX > tempMaxX) {
+                    tempMaxX = n.entries[i].maxX;
+                    lowestHighIndex = i;
+                }
             }
-            else if (n.entries[i].maxX > tempMaxX) {
-              tempMaxX = n.entries[i].maxX;
-              lowestHighIndex = i;
-            }
-          }
         }
 
-        // highestLowIndex is the seed for the new node.
         if (highestLowIndex == -1) {
-          newNode.addEntry(newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId);
+            newNode.addEntry(newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId);
         } else {
-          newNode.addEntry(n.entries[highestLowIndex].minX, n.entries[highestLowIndex].minY,
-                           n.entries[highestLowIndex].maxX, n.entries[highestLowIndex].maxY,
-                           n.ids[highestLowIndex]);
+            newNode.addEntry(n.entries[highestLowIndex].minX, n.entries[highestLowIndex].minY, n.entries[highestLowIndex].maxX, n.entries[highestLowIndex].maxY, n.ids[highestLowIndex]);
             n.ids[highestLowIndex] = -1;
-
-            // move the new rectangle into the space vacated by the seed for the new node
             n.entries[highestLowIndex].minX = newRectMinX;
             n.entries[highestLowIndex].minY = newRectMinY;
             n.entries[highestLowIndex].maxX = newRectMaxX;
             n.entries[highestLowIndex].maxY = newRectMaxY;
-
-          n.ids[highestLowIndex] = newId;
+            n.ids[highestLowIndex] = newId;
         }
 
-        // lowestHighIndex is the seed for the original node.
         if (lowestHighIndex == -1) {
-          lowestHighIndex = highestLowIndex;
+            lowestHighIndex = highestLowIndex;
         }
 
         entryStatus[lowestHighIndex] = ENTRY_STATUS_ASSIGNED;
@@ -589,64 +507,43 @@ namespace SpatialIndex {
         n.mbrMaxY = n.entries[lowestHighIndex].maxY;
     }
 
-    int RTree::pickNext(Node n, Node newNode) {
+    int RTree::pickNext(Node& n, Node& newNode) {
         float maxDifference = -std::numeric_limits<float>::max();
-        int next = 0;
+        int next = -1;
         int nextGroup = 0;
 
         for (int i = 0; i < maxNodeEntries; i++) {
-          if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+            if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                if (n.ids[i] == -1) {
+                    std::cerr << "Error: Node " << n.nodeId << ", entry " << i << " is null" << std::endl;
+                }
 
-            if (n.ids[i] == -1) {
-             std::cerr << "Error: Node " << n.nodeId << ", entry " + i << " is null" << std::endl;
+                float nIncrease = Rectangle::enlargement(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY, n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
+                float newNodeIncrease = Rectangle::enlargement(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
+
+                float difference = std::abs(nIncrease - newNodeIncrease);
+
+                if (difference > maxDifference) {
+                    next = i;
+                    nextGroup = nIncrease < newNodeIncrease ? 0 : 1;
+                    maxDifference = difference;
+                }
             }
-
-            float nIncrease = Rectangle::enlargement(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY,
-                                                    n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
-            float newNodeIncrease = Rectangle::enlargement(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY,
-                                                          n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
-
-            float difference = std::abs(nIncrease - newNodeIncrease);
-
-            if (difference > maxDifference) {
-              next = i;
-
-              if (nIncrease < newNodeIncrease) {
-                nextGroup = 0;
-              } else if (newNodeIncrease < nIncrease) {
-                nextGroup = 1;
-              } else if (Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) < Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY)) {
-                nextGroup = 0;
-              } else if (Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY) < Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY)) {
-                nextGroup = 1;
-              } else if (newNode.entryCount < maxNodeEntries / 2) {
-                nextGroup = 0;
-              } else {
-                nextGroup = 1;
-              }
-              maxDifference = difference;
-            }
-          }
         }
 
         entryStatus[next] = ENTRY_STATUS_ASSIGNED;
 
         if (nextGroup == 0) {
-          if (n.entries[next].minX < n.mbrMinX) n.mbrMinX = n.entries[next].minX;
-            if (n.entries[next].minY < n.mbrMinY) n.mbrMinY = n.entries[next].minY;
-            if (n.entries[next].maxX > n.mbrMaxX) n.mbrMaxX = n.entries[next].maxX;
-            if (n.entries[next].maxY > n.mbrMaxY) n.mbrMaxY = n.entries[next].maxY;
-            n.entryCount++;
+            n.addEntry(n.entries[next].minX, n.entries[next].minY, n.entries[next].maxX, n.entries[next].maxY, n.ids[next]);
         } else {
-          // move to new node.
-          newNode.addEntry(n.entries[next].minX, n.entries[next].minY, n.entries[next].maxX, n.entries[next].maxY, n.ids[next]);
-          n.ids[next] = -1;
+            newNode.addEntry(n.entries[next].minX, n.entries[next].minY, n.entries[next].maxX, n.entries[next].maxY, n.ids[next]);
+            n.ids[next] = -1;
         }
 
         return next;
     }
 
-    float RTree::nearest(Point p, Node n, float furthestDistanceSq, Collections::IntVector nearestIds) {
+    float RTree::nearest(Point& p, Node& n, float furthestDistanceSq, Collections::IntVector& nearestIds) {
         for (int i = 0; i < n.entryCount; i++) {
             float tempDistanceSq = Rectangle::distanceSq(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, p.x, p.y);
             if (n.isLeaf()) { // for leaves, the distance is an actual nearest distance
@@ -668,63 +565,67 @@ namespace SpatialIndex {
         return furthestDistanceSq;
     }
 
-    bool RTree::intersects(Rectangle r, Collections::Procedure v, Node n) {
+    bool RTree::intersects(Rectangle& r, Node& n) {
         for (int i = 0; i < n.entryCount; i++) {
             if (Rectangle::intersects(r.minX, r.minY, r.maxX, r.maxY, n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY)) {
                 if (n.isLeaf()) {
-                    if (!v.execute(n.ids[i])) {
+                    /*if (!v.execute(n.ids[i])) {
                         return false;
-                    }
+                    }*/
                 } else {
-                    Node childNode = getNode(n.ids[i]);
-                    if (!intersects(r, v, childNode)) {
+                    Node& childNode = getNode(n.ids[i]);
+                    /*if (!intersects(r, v, childNode)) {
                         return false;
-                    }
+                    }*/
                 }
             }
         }
         return true;
     }
 
-    void RTree::condenseTree(const Node& l) {
+    void RTree::condenseTree(Node& l) {
         // CT1 [Initialize] Set n=l. Set the list of eliminated
         // nodes to be empty.
-        Node n = l;
-        Node parent;
-        int parentEntry = 0;
+        Node* n = &l;
+        Node* parent;
+        uint32_t parentEntry = 0;
 
-        std::stack<int> eliminatedNodeIds;
+        std::stack<uint32_t> eliminatedNodeIds;
 
         // CT2 [Find parent entry] If N is the root, go to CT6. Otherwise
         // let P be the parent of N, and let En be N's entry in P
-        while (n.level != treeHeight) {
-            parent = getNode(parents.top());
+        while (n->level != treeHeight) {
+            parent = &getNode(parents.top());
             parents.pop();
             parentEntry = parentsEntry.top();
             parentsEntry.pop();
 
             // CT3 [Eliminiate under-full node] If N has too few entries,
             // delete En from P and add N to the list of eliminated nodes
-            if (n.entryCount < minNodeEntries) {
-                parent.deleteEntry(parentEntry);
-                eliminatedNodeIds.push(n.nodeId);
+            if (n->entryCount < minNodeEntries) {
+                parent->deleteEntry(parentEntry);
+                eliminatedNodeIds.push(n->nodeId);
             } else {
                 // CT4 [Adjust covering rectangle] If N has not been eliminated,
                 // adjust EnI to tightly contain all entries in N
-                if (n.mbrMinX != parent.entries[parentEntry].minX ||
-                    n.mbrMinY != parent.entries[parentEntry].minY ||
-                    n.mbrMaxX != parent.entries[parentEntry].maxX ||
-                    n.mbrMaxY != parent.entries[parentEntry].maxY) {
-                    float deletedMinX = parent.entries[parentEntry].minX;
-                    float deletedMinY = parent.entries[parentEntry].minY;
-                    float deletedMaxX = parent.entries[parentEntry].maxX;
-                    float deletedMaxY = parent.entries[parentEntry].maxY;
-                    parent.entries[parentEntry].minX = n.mbrMinX;
-                    parent.entries[parentEntry].minY = n.mbrMinY;
-                    parent.entries[parentEntry].maxX = n.mbrMaxX;
-                    parent.entries[parentEntry].maxY = n.mbrMaxY;
-                    parent.recalculateMBRIfInfluencedBy(deletedMinX, deletedMinY, deletedMaxX, deletedMaxY);
-                    }
+                if (n->mbrMinX != parent->entries[parentEntry].minX ||
+                    n->mbrMinY != parent->entries[parentEntry].minY ||
+                    n->mbrMaxX != parent->entries[parentEntry].maxX ||
+                    n->mbrMaxY != parent->entries[parentEntry].maxY)
+                {
+
+                    float deletedMinX = parent->entries[parentEntry].minX;
+                    float deletedMinY = parent->entries[parentEntry].minY;
+                    float deletedMaxX = parent->entries[parentEntry].maxX;
+                    float deletedMaxY = parent->entries[parentEntry].maxY;
+
+                    parent->entries[parentEntry].minX = n->mbrMinX;
+                    parent->entries[parentEntry].minY = n->mbrMinY;
+                    parent->entries[parentEntry].maxX = n->mbrMaxX;
+                    parent->entries[parentEntry].maxY = n->mbrMaxY;
+
+                    parent->recalculateMBRIfInfluencedBy(deletedMinX, deletedMinY, deletedMaxX, deletedMaxY);
+                }
             }
             // CT5 [Move up one level in tree] Set N=P and repeat from CT2
             n = parent;
@@ -736,7 +637,7 @@ namespace SpatialIndex {
         // the tree, so that leaves of their dependent subtrees will be on the same
         // level as leaves of the main tree
         while (!eliminatedNodeIds.empty()) {
-            Node e = getNode(eliminatedNodeIds.top());
+            Node& e = getNode(eliminatedNodeIds.top());
             eliminatedNodeIds.pop();
             for (int j = 0; j < e.entryCount; j++) {
                 add(e.entries[j].minX, e.entries[j].minY, e.entries[j].maxX, e.entries[j].maxY, e.ids[j], e.level);
@@ -747,91 +648,50 @@ namespace SpatialIndex {
         }
     }
 
-    Node RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level) {
-        // CL1 [Initialize] Set N to be the root node
-        Node n = getNode(rootNodeId);
-        parents = std::stack<int>();
-        parentsEntry = std::stack<int>();
+    Node& RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level) {
+        Node& n = getNode(rootNodeId);
 
-        // CL2 [Leaf check] If N is a leaf, return N
-        while (true) {
-            if (n.isEmpty()) {
-                std::cerr << "Could not get root node (" << rootNodeId << ")" << std::endl;
-            }
+        while (n.level > level) {
+            int index = -1;
+            float leastEnlargement = std::numeric_limits<float>::max();
+            float leastArea = std::numeric_limits<float>::max();
 
-            if (n.level == level) {
-                return n;
-            }
+            for (int i = 0; i < n.entryCount; ++i) {
+                float enlargement = Rectangle::enlargement(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, minX, minY, maxX, maxY);
+                float area = Rectangle::area(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
 
-            // CL3 [Choose subtree] If N is not at the desired level, let F be the entry in N
-            // whose rectangle FI needs least enlargement to include EI. Resolve
-            // ties by choosing the entry with the rectangle of smaller area.
-            float leastEnlargement = Rectangle::enlargement(n.entries[0].minX, n.entries[0].minY, n.entries[0].maxX, n.entries[0].maxY,
-                                                           minX, minY, maxX, maxY);
-            int index = 0; // index of rectangle in subtree
-            for (int i = 1; i < n.entryCount; i++) {
-                float tempMinX = n.entries[i].minX;
-                float tempMinY = n.entries[i].minY;
-                float tempMaxX = n.entries[i].maxX;
-                float tempMaxY = n.entries[i].maxY;
-                float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
-                                                              minX, minY, maxX, maxY);
-                if ((tempEnlargement < leastEnlargement) ||
-                    ((tempEnlargement == leastEnlargement) &&
-                     (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
-                      Rectangle::area(n.entries[index].minX, n.entries[index].minY, n.entries[index].maxX, n.entries[index].maxY)))) {
+                if (enlargement < leastEnlargement || (enlargement == leastEnlargement && area < leastArea)) {
                     index = i;
-                    leastEnlargement = tempEnlargement;
-                      }
+                    leastEnlargement = enlargement;
+                    leastArea = area;
+                }
             }
 
-            parents.push(n.nodeId);
-            parentsEntry.push(index);
-
-            // CL4 [Descend until a leaf is reached] Set N to be the child node
-            // pointed to by Fp and repeat from CL2
             n = getNode(n.ids[index]);
         }
+        return n;
     }
 
-    Node RTree::adjustTree(Node n, Node nn) {
-
+    Node* RTree::adjustTree(Node& n, Node* nn) {
         while (n.level != treeHeight) {
-            Node parent = getNode(parents.top());
+            Node& parent = getNode(parents.top());
             parents.pop();
             int entry = parentsEntry.top();
             parentsEntry.pop();
 
-            if (parent.ids[entry] != n.nodeId) {
-                std::cerr << "Error: entry " << entry << "in node " << parent.nodeId << " should point to node "
-                << n.nodeId << "; actually points to node " << parent.ids[entry] << std::endl;
-            }
+            parent.recalculateMBRIfInfluencedBy(parent.entries[entry].minX, parent.entries[entry].minY, parent.entries[entry].maxX, parent.entries[entry].maxY);
 
-            if (parent.entries[entry].minX != n.mbrMinX || parent.entries[entry].minY != n.mbrMinY || parent.entries[entry].maxX != n.mbrMaxX || parent.entries[entry].maxY != n.mbrMaxY) {
-                parent.entries[entry].minX = n.mbrMinX;
-                parent.entries[entry].minY = n.mbrMinY;
-                parent.entries[entry].maxX = n.mbrMaxX;
-                parent.entries[entry].maxY = n.mbrMaxY;
-
-                parent.recalculateMBR();
-            }
-
-            Node newNode;
-            if (!nn.isEmpty()) {
+            if (nn != nullptr && !nn->isEmpty()) {
                 if (parent.entryCount < maxNodeEntries) {
-                    parent.addEntry(nn.mbrMinX, nn.mbrMinY, nn.mbrMaxX, nn.mbrMaxY, nn.nodeId);
+                    parent.addEntry(nn->mbrMinX, nn->mbrMinY, nn->mbrMaxX, nn->mbrMaxY, nn->nodeId);
+                    nn = nullptr; // New node has been added, stop propagating
                 } else {
-                    newNode = splitNode(parent, nn.mbrMinX, nn.mbrMinY, nn.mbrMaxX, nn.mbrMaxY, nn.nodeId);
+                    nn = splitNode(parent, nn->mbrMinX, nn->mbrMinY, nn->mbrMaxX, nn->mbrMaxY, nn->nodeId);
                 }
             }
 
             n = parent;
-            nn = newNode;
-
-            parent = Node();
-            newNode = Node();
         }
-
         return nn;
     }
 
@@ -839,8 +699,8 @@ namespace SpatialIndex {
         return checkConsistency(rootNodeId, treeHeight, Rectangle());
     }
 
-    bool RTree::checkConsistency(int nodeId, int expectedLevel, Rectangle expectedMBR) {
-        Node n = getNode(nodeId);
+    bool RTree::checkConsistency(uint32_t nodeId, int expectedLevel, Rectangle expectedMBR) {
+        Node& n = getNode(nodeId);
 
         if (n.isEmpty()) {
             std::cerr << "Error: Could not read node " << nodeId << std::endl;
@@ -913,7 +773,7 @@ namespace SpatialIndex {
 
     }
 
-    Rectangle RTree::calculateMBR(Node n) {
+    Rectangle& RTree::calculateMBR(Node& n) {
         Rectangle mbr = Rectangle();
 
         for (int i = 0; i < n.entryCount; i++) {
@@ -925,4 +785,9 @@ namespace SpatialIndex {
 
         return mbr;
     }
+
+    uint32_t RTree::numNodes() const {
+        return nodeMap.size();
+    }
+
 }

@@ -1,6 +1,4 @@
-//
-// Created by serafm on 8/6/2024.
-//
+#pragma once
 
 #ifndef FLOATVECTOR_H
 #define FLOATVECTOR_H
