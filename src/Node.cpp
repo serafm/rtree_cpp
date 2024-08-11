@@ -7,10 +7,19 @@ namespace rtree {
 
     class RTree;
 
-    Node::Node(uint32_t id, int level) :
-        nodeId(id), level(level) {
+    Node::Node(uint32_t id, int level)
+    : nodeId(id),
+    level(level)
+    {
         // Preallocate space for entries if known at construction
-        // entries.reserve(maxNodeEntries);
+        entries.reserve(50);
+        ids.reserve(50);
+    }
+
+    Node::Node() {
+        // Preallocate space for entries if known at construction
+        entries.reserve(50);
+        ids.reserve(50);
     }
 
     Node::~Node() = default;
@@ -23,8 +32,10 @@ namespace rtree {
             std::exit(1);
         }
 
-        entries.push_front(entry);
-        ids.push_back(id);
+        if (entries.size() <= entries.capacity()) {
+            entries.push_back(entry);
+            ids.push_back(id);
+        }
 
         // Efficiently update MBR only if necessary
         if (entryCount == 0) {

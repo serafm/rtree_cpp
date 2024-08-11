@@ -21,7 +21,7 @@ int main() {
     }
 
     // Initialize RTree Spatial Index
-    RTree rtree;
+    auto rtree = RTree();
 
     string mbr_line;
     uint32_t id = 2;

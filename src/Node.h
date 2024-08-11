@@ -28,7 +28,7 @@ namespace rtree {
         /**
          * Node ID
          */
-        uint32_t nodeId;
+        uint32_t nodeId{};
 
         /**
          * Minimum bounding rectangle (MBR) of the node
@@ -51,7 +51,7 @@ namespace rtree {
         /**
          * Queue of entries
          */
-        std::deque<Entry> entries;
+        std::vector<Entry> entries;
 
         /**
          * Vector of:
@@ -64,6 +64,7 @@ namespace rtree {
          * @param level Level of the node in the tree.
          */
         Node(uint32_t id, int level);
+        Node();
         ~Node();
 
         /**
