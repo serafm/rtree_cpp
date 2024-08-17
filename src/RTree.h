@@ -72,7 +72,7 @@ namespace rtree {
         void nearestNUnsorted(Point& p, int count, float furthestDistance);
         void nearestN(Point& p, int count, float furthestDistance);
         int treeSize() const;
-        //Rectangle getBounds();
+        Rectangle getBounds();
 
     };
 }

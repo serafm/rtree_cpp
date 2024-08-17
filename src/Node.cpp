@@ -62,7 +62,7 @@ namespace rtree {
         return -1;
     }
 
-    void Node::deleteEntry(int index) {
+    void Node::deleteEntry(uint32_t index) {
         int lastIndex = entryCount - 1;
         if (index != lastIndex) {
             // Swap the entry to delete with the last entry

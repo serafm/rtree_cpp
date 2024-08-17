@@ -91,7 +91,7 @@ namespace rtree {
          * Delete entry by index.
          * @param index Entry index
          */
-        void deleteEntry(int index);
+        void deleteEntry(uint32_t index);
 
         /**
          * Recalculate the MBR of the node if necessary.

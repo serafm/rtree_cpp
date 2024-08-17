@@ -1177,10 +1177,12 @@ CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o: /home/serafm/dev/rtree_cpp_v2/src/R
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
+  /usr/include/c++/11/algorithm \
   /usr/include/c++/11/array \
   /usr/include/c++/11/backward/auto_ptr.h \
   /usr/include/c++/11/backward/binders.h \
   /usr/include/c++/11/bit \
+  /usr/include/c++/11/bits/algorithmfwd.h \
   /usr/include/c++/11/bits/align.h \
   /usr/include/c++/11/bits/alloc_traits.h \
   /usr/include/c++/11/bits/allocated_ptr.h \
@@ -1231,11 +1233,14 @@ CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o: /home/serafm/dev/rtree_cpp_v2/src/R
   /usr/include/c++/11/bits/shared_ptr_atomic.h \
   /usr/include/c++/11/bits/shared_ptr_base.h \
   /usr/include/c++/11/bits/std_abs.h \
+  /usr/include/c++/11/bits/std_function.h \
+  /usr/include/c++/11/bits/stl_algo.h \
   /usr/include/c++/11/bits/stl_algobase.h \
   /usr/include/c++/11/bits/stl_bvector.h \
   /usr/include/c++/11/bits/stl_construct.h \
   /usr/include/c++/11/bits/stl_deque.h \
   /usr/include/c++/11/bits/stl_function.h \
+  /usr/include/c++/11/bits/stl_heap.h \
   /usr/include/c++/11/bits/stl_iterator.h \
   /usr/include/c++/11/bits/stl_iterator_base_funcs.h \
   /usr/include/c++/11/bits/stl_iterator_base_types.h \
@@ -1250,6 +1255,7 @@ CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o: /home/serafm/dev/rtree_cpp_v2/src/R
   /usr/include/c++/11/bits/streambuf_iterator.h \
   /usr/include/c++/11/bits/string_view.tcc \
   /usr/include/c++/11/bits/stringfwd.h \
+  /usr/include/c++/11/bits/uniform_int_dist.h \
   /usr/include/c++/11/bits/unique_ptr.h \
   /usr/include/c++/11/bits/unordered_map.h \
   /usr/include/c++/11/bits/uses_allocator.h \
@@ -1274,6 +1280,7 @@ CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o: /home/serafm/dev/rtree_cpp_v2/src/R
   /usr/include/c++/11/ext/numeric_traits.h \
   /usr/include/c++/11/ext/string_conversions.h \
   /usr/include/c++/11/ext/type_traits.h \
+  /usr/include/c++/11/functional \
   /usr/include/c++/11/initializer_list \
   /usr/include/c++/11/ios \
   /usr/include/c++/11/iosfwd \
@@ -1284,6 +1291,7 @@ CMakeFiles/rtree_cpp_v2.dir/src/RTree.cpp.o: /home/serafm/dev/rtree_cpp_v2/src/R
   /usr/include/c++/11/new \
   /usr/include/c++/11/ostream \
   /usr/include/c++/11/pstl/execution_defs.h \
+  /usr/include/c++/11/pstl/glue_algorithm_defs.h \
   /usr/include/c++/11/pstl/glue_memory_defs.h \
   /usr/include/c++/11/pstl/pstl_config.h \
   /usr/include/c++/11/stack \
