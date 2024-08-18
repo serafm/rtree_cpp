@@ -1,4 +1,6 @@
 #include "RTree.h"
+
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <vector>
@@ -7,44 +9,52 @@
 #include "Collections/PriorityQueue.h"
 #include "Rectangle.h"
 
+using namespace std;
+
 namespace rtree {
 
-    void RTree::add(Rectangle& r, uint32_t id) {
-        add(r.minX, r.minY, r.maxX, r.maxY, id, 1);
-        ++size;
+    RTree::RTree()
+    {
+        maxNodeEntries = DEFAULT_MAX_NODE_ENTRIES;
+        minNodeEntries = DEFAULT_MIN_NODE_ENTRIES;
+        entryStatus.assign(maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
+        initialEntryStatus = entryStatus;
+        root = Node(rootNodeId, 1);
+        nodeMap.insert({rootNodeId, root});
+    }
 
-        if (INTERNAL_CONSISTENCY_CHECKING) {
-            checkConsistency();
-        }
+    void RTree::add(Rectangle& r, uint32_t id)
+    {
+        cout << "Adding rectangle with ID: " << id << endl;
+        add(r.minX, r.minY, r.maxX, r.maxY, id, 1);
+        size++;
     }
 
     void RTree::add(float minX, float minY, float maxX, float maxY, uint32_t id, int level) {
         Node& n = chooseNode(minX, minY, maxX, maxY, level);
-        Node* newLeaf;
+        Node newLeaf;
 
-        // Check if leaf node has space for new entry
+        // Check if node has space for new entry
         if (n.entryCount < maxNodeEntries) {
             n.addEntry(minX, minY, maxX, maxY, id);
-            nodeMap.insert({n.getNodeId(), &n});
+            nodeMap.insert({n.getNodeId(), n});
         } else {
             newLeaf = splitNode(n, minX, minY, maxX, maxY, id);
         }
 
-        Node* newNode = adjustTree(n, newLeaf);
+        Node& newNode = adjustTree(n, newLeaf);
 
-        if (!newNode->isEmpty()) {
+        if (!newNode.isEmpty()) {
             uint32_t oldRootNodeId = rootNodeId;
             Node& oldRoot = getNode(oldRootNodeId);
 
             rootNodeId = getNextNodeId();
-            ++treeHeight;
-            Node root(rootNodeId, treeHeight);
+            treeHeight++;
+            Node* root = new Node(rootNodeId, treeHeight);
+            nodeMap.insert({root->getNodeId(), *root});
 
-            root.addEntry(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY, newNode->nodeId);
-            root.addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId);
-
-            nodeMap.erase(rootNodeId);
-            nodeMap.emplace(rootNodeId, &root);
+            root->addEntry(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, newNode.nodeId);
+            root->addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId);
         }
     }
 
@@ -54,13 +64,15 @@ namespace rtree {
 
         parentsEntry = std::stack<uint32_t>();
         parentsEntry.push(-1);
-        Node& n = getNode(parents.top());
+        Node n;
         int foundIndex = -1;
 
         while (foundIndex == -1 && !parents.empty()) {
+            n = getNode(parents.top());
             uint32_t startIndex = parentsEntry.top() + 1;
 
             if (!n.isLeaf()) {
+                cout << "Searching node " << n.nodeId << ", from index " << startIndex << endl;
                 bool contains = false;
                 for (uint32_t i = startIndex; i < n.entryCount; i++) {
                     if (Rectangle::contains(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY,
@@ -108,24 +120,27 @@ namespace rtree {
             root.mbrMaxX = -std::numeric_limits<float>::max();
             root.mbrMaxY = -std::numeric_limits<float>::max();
         }
-
-        if (INTERNAL_CONSISTENCY_CHECKING) {
-            checkConsistency();
-        }
-
         return (foundIndex != -1);
     }
 
     void RTree::nearest(Point& p, float furthestDistance) {
-        Node& rootNode = getNode(rootNodeId);
+        auto rootNode = getNode(rootNodeId);
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
-        Collections::IntVector nearestIds = Collections::IntVector();
-        nearest(p, rootNode, furthestDistanceSq, nearestIds);
+        auto nearestIds = Collections::IntVector();
+
         std::cout << "Nearest rectangles to point (" << p.x << "," << p.y << ") are: " << std::endl;
-        for (int i = 0; i < nearestIds.size(); i++) {
-            std::cout << "Rectangle ID: " << nearestIds.get(i) << std::endl;
-        }
+
+        auto printNearest = [&]() {
+            for (int i = 0; i < nearestIds.size(); i++) {
+                std::cout << "Rectangle with ID: " << nearestIds.get(i) << std::endl;
+            }
+        };
+
+        nearest(p, rootNode, furthestDistanceSq, nearestIds);
+
+        printNearest();
+
         nearestIds.reset();
     }
 
@@ -141,16 +156,13 @@ namespace rtree {
         parentsEntry = std::stack<uint32_t>();
         parentsEntry.push(-1);
 
-        Collections::IntVector savedValues = Collections::IntVector();
+        auto savedValues = Collections::IntVector();
         float savedPriority = 0;
-
-        // TODO: possible shortcut here - could tests for intersection with the
-        //       MBR of the root node. If no intersection, return immediately.
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
 
-        while (!parents.empty()) {
-            Node& n = getNode(parents.top());
+        while (parents.size() > 0) {
+            auto n = getNode(parents.top());
             uint32_t startIndex = parentsEntry.top() + 1;
 
             if (!n.isLeaf()) {
@@ -244,7 +256,7 @@ namespace rtree {
     }
 
     void RTree::nearestN(Point& p, int count, float furthestDistance) {
-        Collections::PriorityQueue distanceQueue = Collections::PriorityQueue(false);
+        auto distanceQueue = Collections::PriorityQueue(false);
         createNearestNDistanceQueue(p, count, distanceQueue, furthestDistance);
         distanceQueue.setSortOrder(true);
 
@@ -260,7 +272,7 @@ namespace rtree {
     }
 
     void RTree::intersects(Rectangle& r) {
-        Node& rootNode = getNode(rootNodeId);
+        auto rootNode = getNode(rootNodeId);
         intersects(r, rootNode);
     }
 
@@ -273,11 +285,14 @@ namespace rtree {
         parentsEntry = std::stack<uint32_t>();
         parentsEntry.push(-1);
 
-        // TODO: possible shortcut here - could tests for intersection with the
-        // MBR of the root node. If no intersection, return immediately.
+        auto response = [&]() {
+            for (uint32_t id : ids) {
+                std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
+            }
+        };
 
         while (!parents.empty()) {
-            Node& n = getNode(parents.top());
+            auto n = getNode(parents.top());
             int startIndex = parentsEntry.top() + 1;
 
             if (!n.isLeaf()) {
@@ -306,25 +321,24 @@ namespace rtree {
                     if (Rectangle::contains(r.minX, r.minY, r.maxX, r.maxY,
                                            n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY)) {
                         ids.push_back(n.ids[i]);
-                        /*if (!v.execute(n.ids[i])) {
-                            return;
-                        }*/
                     }
                 }
             }
+
             parents.pop();
             parentsEntry.pop();
         }
+        response();
     }
 
     int RTree::treeSize() const {
         return size;
     }
 
-    /*Rectangle RTree::getBounds() {
+    Rectangle RTree::getBounds() {
         Rectangle bounds;
 
-        Node n = getNode(getRootNodeId());
+        auto n = getNode(getRootNodeId());
         if (!n.isEmpty() && n.entryCount > 0) {
             bounds = Rectangle();
             bounds.minX = n.mbrMinX;
@@ -333,7 +347,7 @@ namespace rtree {
             bounds.maxY = n.mbrMaxY;
         }
         return bounds;
-    }*/
+    }
 
     uint32_t RTree::getNextNodeId() {
         uint32_t nextNodeId;
@@ -341,66 +355,68 @@ namespace rtree {
             nextNodeId = deletedNodeIds.top();
             deletedNodeIds.pop();
         } else {
-            nextNodeId = highestUsedNodeId + 1;
+            nextNodeId = 1 + highestUsedNodeId++;
         }
         return nextNodeId;
     }
 
     Node& RTree::getNode(uint32_t id) {
-        return *nodeMap.at(id);
+        return nodeMap.at(id);
     }
 
     uint32_t RTree::getRootNodeId() const {
         return rootNodeId;
     }
 
-    Node* RTree::splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId) {
-    entryStatus.assign(initialEntryStatus.begin(), initialEntryStatus.end());
-    Node* newNode = new Node(getNextNodeId(), n.level);
-    nodeMap.insert({newNode->nodeId, newNode});
+    Node RTree::splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId) {
+        // entryStatus.assign(initialEntryStatus.begin(), initialEntryStatus.end());
+        Node newNode(getNextNodeId(), n.level);
+        nodeMap.insert({newNode.nodeId, newNode});
 
-    if (newNode != nullptr) {
-        pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, *newNode);
-    } else {
-        std::cerr << "Error: Failed to split node is null" << std::endl;
-        return nullptr;
-    }
+        if (!newNode.isEmpty()) {
+            pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, newNode);
+        } else {
+            std::cerr << "Error: Failed to split node is null" << std::endl;
+            std::exit(1);
+        }
 
-    while (n.entryCount + newNode->entryCount < maxNodeEntries + 1) {
-        if (maxNodeEntries + 1 - newNode->entryCount == minNodeEntries) {
-            for (int i = 0; i < maxNodeEntries; i++) {
-                if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
-                    entryStatus[i] = ENTRY_STATUS_ASSIGNED;
-                    n.addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
+        while (n.entryCount + newNode.entryCount < maxNodeEntries + 1) {
+            if (maxNodeEntries + 1 - newNode.entryCount == minNodeEntries) {
+                for (int i = 0; i < maxNodeEntries; i++) {
+                    if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                        entryStatus[i] = ENTRY_STATUS_ASSIGNED;
+
+                        if (n.entries[i].minX < n.mbrMinX) {
+                            n.mbrMinX = n.entries[i].minX;
+                        }
+                        if (n.entries[i].minY < n.mbrMinY) {
+                            n.mbrMinY = n.entries[i].minY;
+                        }
+                        if (n.entries[i].maxX > n.mbrMaxX) {
+                            n.mbrMaxX = n.entries[i].maxX;
+                        }
+                        if (n.entries[i].maxY > n.mbrMaxY) {
+                            n.mbrMaxY = n.entries[i].maxY;
+                        }
+
+                        n.entryCount++;
+                    }
                 }
+                break;
             }
-            break;
-        }
-        if (maxNodeEntries + 1 - n.entryCount == minNodeEntries) {
-            for (int i = 0; i < maxNodeEntries; i++) {
-                if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
-                    entryStatus[i] = ENTRY_STATUS_ASSIGNED;
-                    newNode->addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
-                    n.ids[i] = -1;
+            if (maxNodeEntries + 1 - n.entryCount == minNodeEntries) {
+                for (int i = 0; i < maxNodeEntries; i++) {
+                    if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                        entryStatus[i] = ENTRY_STATUS_ASSIGNED;
+                        newNode.addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
+                        n.ids[i] = 0;
+                    }
                 }
+                break;
             }
-            break;
+            pickNext(n, newNode);
         }
-        pickNext(n, *newNode);
-    }
-
-    n.reorganize(maxNodeEntries);
-
-    if (INTERNAL_CONSISTENCY_CHECKING) {
-        Rectangle nMBR = Rectangle(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY);
-        if (!nMBR.equals(calculateMBR(n))) {
-            std::cerr << "Error: splitNode old node MBR wrong" << std::endl;
-        }
-        Rectangle newNodeMBR = Rectangle(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY);
-        if (!newNodeMBR.equals(calculateMBR(*newNode))) {
-            std::cerr << "Error: splitNode new node MBR wrong" << std::endl;
-        }
-    }
+        n.reorganize(maxNodeEntries);
         return newNode;
     }
 
@@ -408,6 +424,21 @@ namespace rtree {
         float maxNormalizedSeparation = -1;
         int highestLowIndex = -1;
         int lowestHighIndex = -1;
+
+        // for the purposes of picking seeds, take the MBR of the node to include
+        // the new rectangle aswell.
+        if (newRectMinX < n.mbrMinX) {
+            n.mbrMinX = newRectMinX;
+        }
+        if (newRectMinY < n.mbrMinY) {
+            n.mbrMinY = newRectMinY;
+        }
+        if (newRectMaxX > n.mbrMaxX) {
+            n.mbrMaxX = newRectMaxX;
+        }
+        if (newRectMaxY > n.mbrMaxY) {
+            n.mbrMaxY = newRectMaxY;
+        }
 
         float mbrLenX = n.mbrMaxX - n.mbrMinX;
         float mbrLenY = n.mbrMaxY - n.mbrMinY;
@@ -431,7 +462,14 @@ namespace rtree {
                 }
             }
 
-            float normalizedSeparation = mbrLenX == 0 ? 1 : (tempHighestLow - tempLowestHigh) / mbrLenX;
+            float normalizedSeparation;
+
+            if (mbrLenX == 0) {
+                normalizedSeparation = 1.0f;  // Avoid division by zero, default to 1
+            } else {
+                normalizedSeparation = (tempHighestLow - tempLowestHigh) / mbrLenX;  // Normalize the separation
+            }
+
             if (normalizedSeparation >= maxNormalizedSeparation) {
                 highestLowIndex = tempHighestLowIndex;
                 lowestHighIndex = tempLowestHighIndex;
@@ -458,7 +496,18 @@ namespace rtree {
                 }
             }
 
-            float normalizedSeparation = mbrLenY == 0 ? 1 : (tempHighestLow - tempLowestHigh) / mbrLenY;
+            float normalizedSeparation;
+
+            if (mbrLenY == 0) {
+                normalizedSeparation = 1.0f;  // Avoid division by zero, default to 1
+            } else {
+                normalizedSeparation = (tempHighestLow - tempLowestHigh) / mbrLenY;  // Normalize the separation
+            }
+
+            if (normalizedSeparation > 1 || normalizedSeparation < -1) {
+                std::cerr << "Error: Normalized separation is not between -1 and 1" << std::endl;
+            }
+
             if (normalizedSeparation >= maxNormalizedSeparation) {
                 highestLowIndex = tempHighestLowIndex;
                 lowestHighIndex = tempLowestHighIndex;
@@ -467,7 +516,7 @@ namespace rtree {
         }
 
         if (highestLowIndex == lowestHighIndex) {
-            highestLowIndex = -1;
+            highestLowIndex = 0;
             float tempMinY = newRectMinY;
             lowestHighIndex = 0;
             float tempMaxX = n.entries[0].maxX;
@@ -483,11 +532,11 @@ namespace rtree {
             }
         }
 
-        if (highestLowIndex == -1) {
+        if (highestLowIndex == 0) {
             newNode.addEntry(newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId);
         } else {
             newNode.addEntry(n.entries[highestLowIndex].minX, n.entries[highestLowIndex].minY, n.entries[highestLowIndex].maxX, n.entries[highestLowIndex].maxY, n.ids[highestLowIndex]);
-            n.ids[highestLowIndex] = -1;
+            n.ids[highestLowIndex] = 0;
             n.entries[highestLowIndex].minX = newRectMinX;
             n.entries[highestLowIndex].minY = newRectMinY;
             n.entries[highestLowIndex].maxX = newRectMaxX;
@@ -495,7 +544,7 @@ namespace rtree {
             n.ids[highestLowIndex] = newId;
         }
 
-        if (lowestHighIndex == -1) {
+        if (lowestHighIndex == 0) {
             lowestHighIndex = highestLowIndex;
         }
 
@@ -509,7 +558,7 @@ namespace rtree {
 
     int RTree::pickNext(Node& n, Node& newNode) {
         float maxDifference = -std::numeric_limits<float>::max();
-        int next = -1;
+        int next = 0;
         int nextGroup = 0;
 
         for (int i = 0; i < maxNodeEntries; i++) {
@@ -518,14 +567,44 @@ namespace rtree {
                     std::cerr << "Error: Node " << n.nodeId << ", entry " << i << " is null" << std::endl;
                 }
 
-                float nIncrease = Rectangle::enlargement(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY, n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
-                float newNodeIncrease = Rectangle::enlargement(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
+                float nIncrease = Rectangle::enlargement(
+                    n.mbrMinX,
+                    n.mbrMinY,
+                    n.mbrMaxX,
+                    n.mbrMaxY,
+                    n.entries[i].minX,
+                    n.entries[i].minY,
+                    n.entries[i].maxX,
+                    n.entries[i].maxY);
+
+                float newNodeIncrease = Rectangle::enlargement(
+                    newNode.mbrMinX,
+                    newNode.mbrMinY,
+                    newNode.mbrMaxX,
+                    newNode.mbrMaxY,
+                    n.entries[i].minX,
+                    n.entries[i].minY,
+                    n.entries[i].maxX,
+                    n.entries[i].maxY);
 
                 float difference = std::abs(nIncrease - newNodeIncrease);
 
                 if (difference > maxDifference) {
                     next = i;
-                    nextGroup = nIncrease < newNodeIncrease ? 0 : 1;
+
+                    if (nIncrease < newNodeIncrease) {
+                        nextGroup = 0;
+                    } else if (newNodeIncrease < nIncrease) {
+                        nextGroup = 1;
+                    } else if (Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY) < Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY)) {
+                        nextGroup = 0;
+                    } else if (Rectangle::area(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY) < Rectangle::area(n.mbrMinX, n.mbrMinY, n.mbrMaxX, n.mbrMaxY)) {
+                        nextGroup = 1;
+                    } else if (newNode.entryCount < maxNodeEntries / 2) {
+                        nextGroup = 0;
+                    } else {
+                        nextGroup = 1;
+                    }
                     maxDifference = difference;
                 }
             }
@@ -534,10 +613,23 @@ namespace rtree {
         entryStatus[next] = ENTRY_STATUS_ASSIGNED;
 
         if (nextGroup == 0) {
-            n.addEntry(n.entries[next].minX, n.entries[next].minY, n.entries[next].maxX, n.entries[next].maxY, n.ids[next]);
+            if (n.entries[next].minX < n.mbrMinX) {
+                n.mbrMinX = n.entries[next].minX;
+            }
+            if (n.entries[next].minY < n.mbrMinY) {
+                n.mbrMinY = n.entries[next].minY;
+            }
+            if (n.entries[next].maxX > n.mbrMaxX) {
+                n.mbrMaxX = n.entries[next].maxX;
+            }
+            if (n.entries[next].maxY > n.mbrMaxY) {
+                n.mbrMaxY = n.entries[next].maxY;
+            }
+            n.entryCount++;
         } else {
+            // move to new node.
             newNode.addEntry(n.entries[next].minX, n.entries[next].minY, n.entries[next].maxX, n.entries[next].maxY, n.ids[next]);
-            n.ids[next] = -1;
+            n.ids[next] = 0;
         }
 
         return next;
@@ -567,8 +659,17 @@ namespace rtree {
 
     bool RTree::intersects(Rectangle& r, Node& n) {
         for (int i = 0; i < n.entryCount; i++) {
-            if (Rectangle::intersects(r.minX, r.minY, r.maxX, r.maxY, n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY)) {
+            if (Rectangle::intersects(
+                r.minX,
+                r.minY,
+                r.maxX,
+                r.maxY,
+                n.entries[i].minX,
+                n.entries[i].minY,
+                n.entries[i].maxX,
+                n.entries[i].maxY)) {
                 if (n.isLeaf()) {
+                    // TODO: Lambda function
                     /*if (!v.execute(n.ids[i])) {
                         return false;
                     }*/
@@ -586,8 +687,8 @@ namespace rtree {
     void RTree::condenseTree(Node& l) {
         // CT1 [Initialize] Set n=l. Set the list of eliminated
         // nodes to be empty.
-        Node* n = &l;
-        Node* parent;
+        auto n = &l;
+        Node parent;
         uint32_t parentEntry = 0;
 
         std::stack<uint32_t> eliminatedNodeIds;
@@ -595,7 +696,7 @@ namespace rtree {
         // CT2 [Find parent entry] If N is the root, go to CT6. Otherwise
         // let P be the parent of N, and let En be N's entry in P
         while (n->level != treeHeight) {
-            parent = &getNode(parents.top());
+            parent = getNode(parents.top());
             parents.pop();
             parentEntry = parentsEntry.top();
             parentsEntry.pop();
@@ -603,32 +704,32 @@ namespace rtree {
             // CT3 [Eliminiate under-full node] If N has too few entries,
             // delete En from P and add N to the list of eliminated nodes
             if (n->entryCount < minNodeEntries) {
-                parent->deleteEntry(parentEntry);
+                parent.deleteEntry(parentEntry);
                 eliminatedNodeIds.push(n->nodeId);
             } else {
                 // CT4 [Adjust covering rectangle] If N has not been eliminated,
                 // adjust EnI to tightly contain all entries in N
-                if (n->mbrMinX != parent->entries[parentEntry].minX ||
-                    n->mbrMinY != parent->entries[parentEntry].minY ||
-                    n->mbrMaxX != parent->entries[parentEntry].maxX ||
-                    n->mbrMaxY != parent->entries[parentEntry].maxY)
+                if (n->mbrMinX != parent.entries[parentEntry].minX ||
+                    n->mbrMinY != parent.entries[parentEntry].minY ||
+                    n->mbrMaxX != parent.entries[parentEntry].maxX ||
+                    n->mbrMaxY != parent.entries[parentEntry].maxY)
                 {
 
-                    float deletedMinX = parent->entries[parentEntry].minX;
-                    float deletedMinY = parent->entries[parentEntry].minY;
-                    float deletedMaxX = parent->entries[parentEntry].maxX;
-                    float deletedMaxY = parent->entries[parentEntry].maxY;
+                    float deletedMinX = parent.entries[parentEntry].minX;
+                    float deletedMinY = parent.entries[parentEntry].minY;
+                    float deletedMaxX = parent.entries[parentEntry].maxX;
+                    float deletedMaxY = parent.entries[parentEntry].maxY;
 
-                    parent->entries[parentEntry].minX = n->mbrMinX;
-                    parent->entries[parentEntry].minY = n->mbrMinY;
-                    parent->entries[parentEntry].maxX = n->mbrMaxX;
-                    parent->entries[parentEntry].maxY = n->mbrMaxY;
+                    parent.entries[parentEntry].minX = n->mbrMinX;
+                    parent.entries[parentEntry].minY = n->mbrMinY;
+                    parent.entries[parentEntry].maxX = n->mbrMaxX;
+                    parent.entries[parentEntry].maxY = n->mbrMaxY;
 
-                    parent->recalculateMBRIfInfluencedBy(deletedMinX, deletedMinY, deletedMaxX, deletedMaxY);
+                    parent.recalculateMBRIfInfluencedBy(deletedMinX, deletedMinY, deletedMaxX, deletedMaxY);
                 }
             }
             // CT5 [Move up one level in tree] Set N=P and repeat from CT2
-            n = parent;
+            n = &parent;
         }
 
         // CT6 [Reinsert orphaned entries] Reinsert all entries of nodes in set Q.
@@ -637,11 +738,11 @@ namespace rtree {
         // the tree, so that leaves of their dependent subtrees will be on the same
         // level as leaves of the main tree
         while (!eliminatedNodeIds.empty()) {
-            Node& e = getNode(eliminatedNodeIds.top());
+            auto e = getNode(eliminatedNodeIds.top());
             eliminatedNodeIds.pop();
             for (int j = 0; j < e.entryCount; j++) {
                 add(e.entries[j].minX, e.entries[j].minY, e.entries[j].maxX, e.entries[j].maxY, e.ids[j], e.level);
-                e.ids[j] = -1;
+                e.ids[j] = 0;
             }
             e.entryCount = 0;
             deletedNodeIds.push(e.nodeId);
@@ -650,131 +751,106 @@ namespace rtree {
 
     Node& RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level) {
         Node& n = getNode(rootNodeId);
+        parents = std::stack<uint32_t>();
+        parentsEntry = std::stack<uint32_t>();
 
-        while (n.level > level) {
-            int index = -1;
-            float leastEnlargement = std::numeric_limits<float>::max();
-            float leastArea = std::numeric_limits<float>::max();
-
-            for (int i = 0; i < n.entryCount; ++i) {
-                float enlargement = Rectangle::enlargement(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, minX, minY, maxX, maxY);
-                float area = Rectangle::area(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY);
-
-                if (enlargement < leastEnlargement || (enlargement == leastEnlargement && area < leastArea)) {
-                    index = i;
-                    leastEnlargement = enlargement;
-                    leastArea = area;
-                }
+        while (true) {
+            if (n.isEmpty()) {
+                cerr << "Could not get root node " << rootNodeId << endl;
             }
+
+            if (n.level == level) {
+                return n;
+            }
+
+            float leastEnlargement = Rectangle::enlargement(
+                n.entries[0].minX,
+                n.entries[0].minY,
+                n.entries[0].maxX,
+                n.entries[0].maxY,
+                minX,
+                minY,
+                maxX,
+                maxY);
+
+            int index = 0; // index of rectangle in subtree
+            for (int i = 1; i < n.entryCount; i++) {
+                float tempMinX = n.entries[0].minX;
+                float tempMinY = n.entries[0].minY;
+                float tempMaxX = n.entries[0].maxX;
+                float tempMaxY = n.entries[0].maxY;
+                float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
+                                                              minX, minY, maxX, maxY);
+                if ((tempEnlargement < leastEnlargement) ||
+                    ((tempEnlargement == leastEnlargement) &&
+                     (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
+                      Rectangle::area(
+                          n.entries[0].minX,
+                          n.entries[0].minY,
+                          n.entries[0].maxX,
+                          n.entries[0].maxY))))
+                    {
+                        index = i;
+                        leastEnlargement = tempEnlargement;
+                    }
+            }
+
+            parents.push(n.nodeId);
+            parentsEntry.push(index);
 
             n = getNode(n.ids[index]);
         }
-        return n;
     }
 
-    Node* RTree::adjustTree(Node& n, Node* nn) {
+    Node& RTree::adjustTree(Node& n, Node& nn) {
         while (n.level != treeHeight) {
-            Node& parent = getNode(parents.top());
+            auto parent = getNode(parents.top());
             parents.pop();
             int entry = parentsEntry.top();
             parentsEntry.pop();
 
-            parent.recalculateMBRIfInfluencedBy(parent.entries[entry].minX, parent.entries[entry].minY, parent.entries[entry].maxX, parent.entries[entry].maxY);
+            if (parent.ids[entry] != n.nodeId) {
+                cerr << "Error: entry " << entry << " in node " <<
+                     parent.nodeId << " should point to node " <<
+                     n.nodeId << ", actually points to node " << parent.ids[entry] << endl;
+            }
 
-            if (nn != nullptr && !nn->isEmpty()) {
+            if (parent.entries[entry].minX != n.mbrMinX ||
+              parent.entries[entry].minY != n.mbrMinY ||
+              parent.entries[entry].maxX != n.mbrMaxX ||
+              parent.entries[entry].maxY != n.mbrMaxY) {
+
+                parent.entries[entry].minX = n.mbrMinX;
+                parent.entries[entry].minY = n.mbrMinY;
+                parent.entries[entry].maxX = n.mbrMaxX;
+                parent.entries[entry].maxY = n.mbrMaxY;
+
+                parent.recalculateMBR();
+            }
+
+            Node newNode;
+            if (nn.isEmpty()) {
                 if (parent.entryCount < maxNodeEntries) {
-                    parent.addEntry(nn->mbrMinX, nn->mbrMinY, nn->mbrMaxX, nn->mbrMaxY, nn->nodeId);
-                    nn = nullptr; // New node has been added, stop propagating
+                    parent.addEntry(nn.mbrMinX, nn.mbrMinY, nn.mbrMaxX, nn.mbrMaxY, nn.nodeId);
                 } else {
-                    nn = splitNode(parent, nn->mbrMinX, nn->mbrMinY, nn->mbrMaxX, nn->mbrMaxY, nn->nodeId);
+                    newNode = splitNode(parent, nn.mbrMinX, nn.mbrMinY, nn.mbrMaxX, nn.mbrMaxY, nn.nodeId);
                 }
             }
 
+            // AT5 [Move up to next level] Set N = P and set NN = PP if a split
+            // occurred. Repeat from AT2
             n = parent;
+            nn = newNode;
+
+            parent = Node();
+            newNode = Node();
         }
+
         return nn;
     }
 
-    bool RTree::checkConsistency() {
-        return checkConsistency(rootNodeId, treeHeight, Rectangle());
-    }
-
-    bool RTree::checkConsistency(uint32_t nodeId, int expectedLevel, Rectangle expectedMBR) {
-        Node& n = getNode(nodeId);
-
-        if (n.isEmpty()) {
-            std::cerr << "Error: Could not read node " << nodeId << std::endl;
-            return false;
-        }
-
-        // if tree is empty, then there should be exactly one node, at level 1
-        // TODO: also check the MBR is as for a new node
-        if (nodeId == rootNodeId && treeSize() == 0) {
-            if (n.level != 1) {
-                std::cerr << "Error: tree is empty but root node is not at level 1" << std::endl;
-                return false;
-            }
-        }
-
-        if (n.level != expectedLevel) {
-            std::cerr << "Error: Node " + nodeId << ", expected level " << expectedLevel << ", actual level " << n.level << std::endl;
-            return false;
-        }
-
-        Rectangle calculatedMBR = calculateMBR(n);
-        Rectangle actualMBR = Rectangle();
-        actualMBR.minX = n.mbrMinX;
-        actualMBR.minY = n.mbrMinY;
-        actualMBR.maxX = n.mbrMaxX;
-        actualMBR.maxY = n.mbrMaxY;
-
-        if (!actualMBR.equals(calculatedMBR)) {
-            std::cerr << "Error: Node " << nodeId << ", calculated MBR does not equal stored MBR" << std::endl;
-            if (actualMBR.minX != n.mbrMinX) {
-                std::cerr << "  actualMinX=" << actualMBR.minX << ", calc=" << calculatedMBR.minX << std::endl;
-            }
-            if (actualMBR.minY != n.mbrMinY) {
-                std::cerr << "  actualMinY=" << actualMBR.minY << ", calc=" << calculatedMBR.minY << std::endl;
-            }
-            if (actualMBR.maxX != n.mbrMaxX) {
-                std::cerr << "  actualMaxX=" << actualMBR.maxX << ", calc=" << calculatedMBR.maxX << std::endl;
-            }
-            if (actualMBR.maxY != n.mbrMaxY) {
-                std::cerr << "  actualMaxY=" << actualMBR.maxY << ", calc=" << calculatedMBR.maxY << std::endl;
-            }
-
-            return false;
-        }
-
-        if (expectedMBR.isEmpty() && !actualMBR.equals(expectedMBR)) {
-            std::cerr << "Error: Node " << nodeId << ", expected MBR (from parent) does not equal stored MBR" << std::endl;
-            return false;
-        }
-
-        // Check for corruption where a parent entry is the same object as the child MBR
-        if (expectedMBR.isEmpty() && actualMBR.sameObject(expectedMBR)) {
-            std::cerr << "Error: Node " << nodeId << " MBR using same rectangle object as parent's entry" << std::endl;
-            return false;
-        }
-
-        for (int i = 0; i < n.entryCount; i++) {
-            if (n.ids[i] == -1) {
-                std::cerr << "Error: Node " << nodeId << ", Entry " << i << " is null" << std::endl;
-                return false;
-            }
-
-            if (n.level > 1) { // if not a leaf
-                if (!checkConsistency(n.ids[i], n.level - 1, Rectangle(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY))) {
-                    return false;
-                }
-            }
-        }
-        return true;
-
-    }
-
     Rectangle& RTree::calculateMBR(Node& n) {
-        Rectangle mbr = Rectangle();
+        auto mbr = Rectangle();
 
         for (int i = 0; i < n.entryCount; i++) {
             if (n.entries[i].minX < mbr.minX) mbr.minX = n.entries[i].minX;

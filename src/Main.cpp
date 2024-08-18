@@ -10,7 +10,7 @@ using namespace std;
 int main() {
 
     string filepath = "/home/serafm/Documents/rtree-cpp/data/T3_COUNTY_continental_mbr_no_points_small.csv";
-    std::cout << "----- Create RTree Spatial Index -----" << endl;
+    std::cout << "----- RTree Spatial Index -----" << endl;
     //std::cout << "Enter file path of MBRs: " << std::endl;
     //std::cin >> filepath;
 
@@ -21,12 +21,12 @@ int main() {
     }
 
     // Initialize RTree Spatial Index
-    RTree rtree;
+    auto rtree = RTree();
 
     string mbr_line;
-    uint32_t id = 2;
+    uint32_t id = 1;
     // Read the file and add the rectangles into the tree
-    std::cout << "----- Reading and adding MBRs to RTree -----" << std::endl;
+    std::cout << "----- Indexing rectangles to the tree -----" << std::endl;
     while (getline(inFile, mbr_line)) {
         replace(mbr_line.begin(), mbr_line.end(), ',', ' ');
         std::istringstream iss(mbr_line);

@@ -25,9 +25,8 @@ namespace rtree {
         static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
 
         // List of all nodes in the tree
-        std::unordered_map<uint32_t, Node*> nodeMap;
+        std::unordered_map<uint32_t, Node&> nodeMap;
 
-        static constexpr bool INTERNAL_CONSISTENCY_CHECKING = false;
         static constexpr int ENTRY_STATUS_ASSIGNED = 0;
         static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
         std::vector<int8_t> entryStatus;
@@ -36,16 +35,15 @@ namespace rtree {
         std::stack<uint32_t> parentsEntry;
         int treeHeight = 1;
         uint32_t rootNodeId = 1;
-        Node* root;
+        Node root;
         int size = 0;
         uint32_t highestUsedNodeId = rootNodeId;
         std::stack<uint32_t> deletedNodeIds;
 
         void add(float minX, float minY, float maxX, float maxY, uint32_t id, int level);
-        Node* adjustTree(Node& n, Node* nn);
+        Node& adjustTree(Node& n, Node& nn);
         void condenseTree(Node& l);
         Node& chooseNode(float minX, float minY, float maxX, float maxY, int level);
-        bool checkConsistency(uint32_t nodeId, int expectedLevel, Rectangle expectedMBR);
         static Rectangle& calculateMBR(Node& n);
         void createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance);
         uint32_t getNextNodeId();
@@ -53,7 +51,7 @@ namespace rtree {
         float nearest(Point& p, Node& n, float furthestDistanceSq, Collections::IntVector& nearestIds);
         void pickSeeds(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId, Node& newNode);
         int pickNext(Node& n, Node& newNode);
-        Node* splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId);
+        Node splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId);
 
         public:
 
@@ -61,17 +59,9 @@ namespace rtree {
         int minNodeEntries{};
         std::vector<uint32_t> ids;
 
-        RTree() {
-            maxNodeEntries = DEFAULT_MAX_NODE_ENTRIES;
-            minNodeEntries = DEFAULT_MIN_NODE_ENTRIES;
-            entryStatus.assign(maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
-            initialEntryStatus = entryStatus;
-            root = new Node(rootNodeId, 1);
-            nodeMap.insert({rootNodeId, root});
-        }
+        RTree();
 
         void add(Rectangle& r, uint32_t id);
-        bool checkConsistency();
         void contains(Rectangle& r);
         bool del(Rectangle& r, uint32_t id);
         Node& getNode(uint32_t id);
@@ -82,7 +72,7 @@ namespace rtree {
         void nearestNUnsorted(Point& p, int count, float furthestDistance);
         void nearestN(Point& p, int count, float furthestDistance);
         int treeSize() const;
-        //Rectangle getBounds();
+        Rectangle getBounds();
 
     };
 }
