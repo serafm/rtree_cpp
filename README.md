@@ -1,4 +1,5 @@
-# Implementation of Java Spatial Index(JSI) in C++ 
+# C++ Spatial Index (CPPSI)
+### Implementation of Java Spatial Index(JSI) in C++ 
 
 The management and indexing of geospatial data is a very important research topic in computer science.
 One of the most significant and well-known data structures for storing and searching geospatial data is the R-tree.
