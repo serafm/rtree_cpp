@@ -25,7 +25,7 @@ namespace rtree {
         static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
 
         // List of all nodes in the tree
-        std::unordered_map<uint32_t, Node&> nodeMap;
+        std::unordered_map<uint32_t, Node*> nodeMap;
 
         static constexpr int ENTRY_STATUS_ASSIGNED = 0;
         static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
@@ -43,7 +43,7 @@ namespace rtree {
         void add(float minX, float minY, float maxX, float maxY, uint32_t id, int level);
         Node& adjustTree(Node& n, Node& nn);
         void condenseTree(Node& l);
-        Node& chooseNode(float minX, float minY, float maxX, float maxY, int level);
+        Node& chooseNode(float minX, float minY, float maxX, float maxY, int level, uint32_t staringNodeId);
         static Rectangle& calculateMBR(Node& n);
         void createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance);
         uint32_t getNextNodeId();
@@ -51,7 +51,7 @@ namespace rtree {
         float nearest(Point& p, Node& n, float furthestDistanceSq, Collections::IntVector& nearestIds);
         void pickSeeds(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId, Node& newNode);
         int pickNext(Node& n, Node& newNode);
-        Node splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId);
+        Node& splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId);
 
         public:
 
