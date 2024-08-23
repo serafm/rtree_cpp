@@ -20,7 +20,7 @@ namespace rtree {
         entryStatus.assign(maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
         initialEntryStatus = entryStatus;
         root = Node(rootNodeId, 1);
-        nodeMap.insert({rootNodeId, root});
+        nodeMap.insert({rootNodeId, &root});
     }
 
     void RTree::add(Rectangle& r, uint32_t id)
@@ -31,13 +31,13 @@ namespace rtree {
     }
 
     void RTree::add(float minX, float minY, float maxX, float maxY, uint32_t id, int level) {
-        Node& n = chooseNode(minX, minY, maxX, maxY, level);
+        Node& n = chooseNode(minX, minY, maxX, maxY, level, rootNodeId);
         Node newLeaf;
 
         // Check if node has space for new entry
         if (n.entryCount < maxNodeEntries) {
             n.addEntry(minX, minY, maxX, maxY, id);
-            nodeMap.insert({n.getNodeId(), n});
+            //nodeMap.insert({n.getNodeId(), &n});
         } else {
             newLeaf = splitNode(n, minX, minY, maxX, maxY, id);
         }
@@ -51,10 +51,11 @@ namespace rtree {
             rootNodeId = getNextNodeId();
             treeHeight++;
             Node* root = new Node(rootNodeId, treeHeight);
-            nodeMap.insert({root->getNodeId(), *root});
 
             root->addEntry(newNode.mbrMinX, newNode.mbrMinY, newNode.mbrMaxX, newNode.mbrMaxY, newNode.nodeId);
             root->addEntry(oldRoot.mbrMinX, oldRoot.mbrMinY, oldRoot.mbrMaxX, oldRoot.mbrMaxY, oldRoot.nodeId);
+
+            nodeMap.insert({root->getNodeId(), root});
         }
     }
 
@@ -361,27 +362,27 @@ namespace rtree {
     }
 
     Node& RTree::getNode(uint32_t id) {
-        return nodeMap.at(id);
+        return *nodeMap.at(id);
     }
 
     uint32_t RTree::getRootNodeId() const {
         return rootNodeId;
     }
 
-    Node RTree::splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId) {
+    Node& RTree::splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId) {
         // entryStatus.assign(initialEntryStatus.begin(), initialEntryStatus.end());
-        Node newNode(getNextNodeId(), n.level);
-        nodeMap.insert({newNode.nodeId, newNode});
+        Node* newNode =  new Node(getNextNodeId(), n.level);
+        nodeMap.insert({newNode->nodeId, newNode});
 
-        if (!newNode.isEmpty()) {
-            pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, newNode);
+        if (!newNode->isEmpty()) {
+            pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, *newNode);
         } else {
             std::cerr << "Error: Failed to split node is null" << std::endl;
             std::exit(1);
         }
 
-        while (n.entryCount + newNode.entryCount < maxNodeEntries + 1) {
-            if (maxNodeEntries + 1 - newNode.entryCount == minNodeEntries) {
+        while (n.entryCount + newNode->entryCount < maxNodeEntries + 1) {
+            if (maxNodeEntries + 1 - newNode->entryCount == minNodeEntries) {
                 for (int i = 0; i < maxNodeEntries; i++) {
                     if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
                         entryStatus[i] = ENTRY_STATUS_ASSIGNED;
@@ -408,16 +409,16 @@ namespace rtree {
                 for (int i = 0; i < maxNodeEntries; i++) {
                     if (entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
                         entryStatus[i] = ENTRY_STATUS_ASSIGNED;
-                        newNode.addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
+                        newNode->addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
                         n.ids[i] = 0;
                     }
                 }
                 break;
             }
-            pickNext(n, newNode);
+            pickNext(n, *newNode);
         }
         n.reorganize(maxNodeEntries);
-        return newNode;
+        return *newNode;
     }
 
     void RTree::pickSeeds(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId, Node& newNode) {
@@ -749,57 +750,55 @@ namespace rtree {
         }
     }
 
-    Node& RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level) {
-        Node& n = getNode(rootNodeId);
+    Node& RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level, uint32_t staringNodeId) {
+        Node& n = getNode(staringNodeId);
         parents = std::stack<uint32_t>();
         parentsEntry = std::stack<uint32_t>();
 
-        while (true) {
-            if (n.isEmpty()) {
-                cerr << "Could not get root node " << rootNodeId << endl;
-            }
-
-            if (n.level == level) {
-                return n;
-            }
-
-            float leastEnlargement = Rectangle::enlargement(
-                n.entries[0].minX,
-                n.entries[0].minY,
-                n.entries[0].maxX,
-                n.entries[0].maxY,
-                minX,
-                minY,
-                maxX,
-                maxY);
-
-            int index = 0; // index of rectangle in subtree
-            for (int i = 1; i < n.entryCount; i++) {
-                float tempMinX = n.entries[0].minX;
-                float tempMinY = n.entries[0].minY;
-                float tempMaxX = n.entries[0].maxX;
-                float tempMaxY = n.entries[0].maxY;
-                float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
-                                                              minX, minY, maxX, maxY);
-                if ((tempEnlargement < leastEnlargement) ||
-                    ((tempEnlargement == leastEnlargement) &&
-                     (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
-                      Rectangle::area(
-                          n.entries[0].minX,
-                          n.entries[0].minY,
-                          n.entries[0].maxX,
-                          n.entries[0].maxY))))
-                    {
-                        index = i;
-                        leastEnlargement = tempEnlargement;
-                    }
-            }
-
-            parents.push(n.nodeId);
-            parentsEntry.push(index);
-
-            n = getNode(n.ids[index]);
+        if (n.isEmpty()) {
+            cerr << "Could not get root node " << rootNodeId << endl;
         }
+
+        if (n.level == level) {
+            return n;
+        }
+
+        float leastEnlargement = Rectangle::enlargement(
+            n.entries[0].minX,
+            n.entries[0].minY,
+            n.entries[0].maxX,
+            n.entries[0].maxY,
+            minX,
+            minY,
+            maxX,
+            maxY);
+
+        int index = 0; // index of rectangle in subtree
+        for (int i = 1; i < n.entryCount; i++) {
+            float tempMinX = n.entries[0].minX;
+            float tempMinY = n.entries[0].minY;
+            float tempMaxX = n.entries[0].maxX;
+            float tempMaxY = n.entries[0].maxY;
+            float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
+                                                          minX, minY, maxX, maxY);
+            if ((tempEnlargement < leastEnlargement) ||
+                ((tempEnlargement == leastEnlargement) &&
+                 (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
+                  Rectangle::area(
+                      n.entries[0].minX,
+                      n.entries[0].minY,
+                      n.entries[0].maxX,
+                      n.entries[0].maxY))))
+                {
+                    index = i;
+                    leastEnlargement = tempEnlargement;
+                }
+        }
+
+        parents.push(n.nodeId);
+        parentsEntry.push(index);
+
+        chooseNode(minX, minY, maxX, maxY, level, n.ids[index]);
     }
 
     Node& RTree::adjustTree(Node& n, Node& nn) {
