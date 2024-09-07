@@ -13,12 +13,12 @@ using namespace std;
 
 namespace rtree {
 
-    RTree::RTree()
+    RTree::RTree() :
+        maxNodeEntries(DEFAULT_MAX_NODE_ENTRIES),
+        minNodeEntries(DEFAULT_MIN_NODE_ENTRIES),
+        initialEntryStatus(entryStatus)
     {
-        maxNodeEntries = DEFAULT_MAX_NODE_ENTRIES;
-        minNodeEntries = DEFAULT_MIN_NODE_ENTRIES;
         entryStatus.assign(maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
-        initialEntryStatus = entryStatus;
         root = Node(rootNodeId, 1);
         nodeMap.insert({rootNodeId, &root});
     }
@@ -411,6 +411,7 @@ namespace rtree {
                         entryStatus[i] = ENTRY_STATUS_ASSIGNED;
                         newNode->addEntry(n.entries[i].minX, n.entries[i].minY, n.entries[i].maxX, n.entries[i].maxY, n.ids[i]);
                         n.ids[i] = 0;
+                        n.entries[i] = {0, 0, 0, 0};
                     }
                 }
                 break;
@@ -631,6 +632,7 @@ namespace rtree {
             // move to new node.
             newNode.addEntry(n.entries[next].minX, n.entries[next].minY, n.entries[next].maxX, n.entries[next].maxY, n.ids[next]);
             n.ids[next] = 0;
+            n.entries[next] = {0, 0, 0, 0};
         }
 
         return next;
@@ -752,8 +754,8 @@ namespace rtree {
 
     Node& RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level, uint32_t staringNodeId) {
         Node& n = getNode(staringNodeId);
-        parents = std::stack<uint32_t>();
-        parentsEntry = std::stack<uint32_t>();
+        // parents = std::stack<uint32_t>();  // ?? TODO: Check if this is necessary
+        // parentsEntry = std::stack<uint32_t>();
 
         if (n.isEmpty()) {
             cerr << "Could not get root node " << rootNodeId << endl;
