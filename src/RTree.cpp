@@ -31,6 +31,8 @@ namespace rtree {
     }
 
     void RTree::add(float minX, float minY, float maxX, float maxY, uint32_t id, int level) {
+        parents = std::stack<uint32_t>();
+        parentsEntry = std::stack<uint32_t>();
         Node& n = chooseNode(minX, minY, maxX, maxY, level, rootNodeId);
         Node newLeaf;
 
@@ -754,8 +756,6 @@ namespace rtree {
 
     Node& RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level, uint32_t staringNodeId) {
         Node& n = getNode(staringNodeId);
-        // parents = std::stack<uint32_t>();  // ?? TODO: Check if this is necessary
-        // parentsEntry = std::stack<uint32_t>();
 
         if (n.isEmpty()) {
             cerr << "Could not get root node " << rootNodeId << endl;
