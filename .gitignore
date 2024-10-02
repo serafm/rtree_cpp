@@ -1,3 +1,5 @@
 cmake*
 *.o
+.idea/editor.xml
+.idea/misc.xml
 

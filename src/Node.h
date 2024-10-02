@@ -22,13 +22,13 @@ namespace rtree {
          */
         struct Entry {
             float minX, minY, maxX, maxY;
-            uint32_t id;
+            int id;
         };
 
         /**
          * Node ID
          */
-        uint32_t nodeId{};
+        int nodeId{};
 
         /**
          * Minimum bounding rectangle (MBR) of the node
@@ -57,13 +57,13 @@ namespace rtree {
          * Vector of:
          * Rectangle ids if it's a leaf node / Node ids if it's parent node
          */
-        std::vector<uint32_t> ids;
+        std::vector<int> ids;
 
         /**
          * Node constructor. Creates a new node with the given properties.
          * @param level Level of the node in the tree.
          */
-        Node(uint32_t id, int level);
+        Node(int id, int level);
         Node();
         ~Node();
 
@@ -75,7 +75,7 @@ namespace rtree {
          * @param maxY Max Y value
          * @param id Entry ID
          */
-        void addEntry(float minX, float minY, float maxX, float maxY, uint32_t id);
+        void addEntry(float minX, float minY, float maxX, float maxY, int id);
 
         /**
          * Find entry in the node.
@@ -85,13 +85,13 @@ namespace rtree {
          * @param maxY Max Y value
          * @return
          */
-        int findEntry(float minX, float minY, float maxX, float maxY, uint32_t id);
+        int findEntry(float minX, float minY, float maxX, float maxY, int id);
 
         /**
          * Delete entry by index.
          * @param index Entry index
          */
-        void deleteEntry(uint32_t index);
+        void deleteEntry(int index);
 
         /**
          * Recalculate the MBR of the node if necessary.
@@ -135,7 +135,7 @@ namespace rtree {
          * Get the node ID.
          * @return Node ID
          */
-        [[nodiscard]] uint32_t getNodeId() const;
+        [[nodiscard]] int getNodeId() const;
 
         /**
          * Check if node is leaf node.

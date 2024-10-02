@@ -3,8 +3,8 @@
 #ifndef RTREE_H
 #define RTREE_H
 
+#include <map>
 #include <stack>
-#include <unordered_map>
 #include <vector>
 #include "Node.h"
 #include "Point.h"
@@ -23,51 +23,50 @@ namespace rtree {
 
         static constexpr int DEFAULT_MAX_NODE_ENTRIES = 50;
         static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
-
-        // List of all nodes in the tree
-        std::unordered_map<uint32_t, Node*> nodeMap;
-
         static constexpr int ENTRY_STATUS_ASSIGNED = 0;
         static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
-        std::vector<int8_t> entryStatus;
-        std::vector<int8_t> initialEntryStatus;
-        std::stack<uint32_t> parents;
-        std::stack<uint32_t> parentsEntry;
-        int treeHeight = 1;
-        uint32_t rootNodeId = 1;
-        Node root;
-        int size = 0;
-        uint32_t highestUsedNodeId = rootNodeId;
-        std::stack<uint32_t> deletedNodeIds;
 
-        void add(float minX, float minY, float maxX, float maxY, uint32_t id, int level);
-        Node& adjustTree(Node& n, Node& nn);
-        void condenseTree(Node& l);
-        Node& chooseNode(float minX, float minY, float maxX, float maxY, int level, uint32_t staringNodeId);
-        static Rectangle& calculateMBR(Node& n);
+        // List of all nodes in the tree
+        std::map<int, std::shared_ptr<Node>> m_nodeMap;
+        std::vector<int8_t> m_entryStatus;
+        std::vector<int8_t> m_initialEntryStatus;
+        std::stack<int> m_parents;
+        std::stack<int> m_parentsEntry;
+        int m_treeHeight = 1;
+        int m_rootNodeId = 1;
+        Node m_root;
+        int m_size = 0;
+        int m_highestUsedNodeId = m_rootNodeId;
+        std::stack<int> m_deletedNodeIds;
+
+        void add(float minX, float minY, float maxX, float maxY, int id, int level);
+        std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
+        void condenseTree(std::shared_ptr<Node> l);
+        std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
+        static Rectangle& calculateMBR(std::shared_ptr<Node> n);
         void createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance);
-        uint32_t getNextNodeId();
-        bool intersects(Rectangle& r, Node& n);
-        float nearest(Point& p, Node& n, float furthestDistanceSq, Collections::IntVector& nearestIds);
-        void pickSeeds(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId, Node& newNode);
-        int pickNext(Node& n, Node& newNode);
-        Node& splitNode(Node& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, uint32_t newId);
+        int getNextNodeId();
+        bool intersects(Rectangle& r, std::shared_ptr<Node> n);
+        float nearest(Point& p, std::shared_ptr<Node> n, float furthestDistanceSq, Collections::IntVector& nearestIds);
+        void pickSeeds(std::shared_ptr<Node> n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, std::shared_ptr<Node> newNode);
+        int pickNext(std::shared_ptr<Node> n, std::shared_ptr<Node> newNode);
+        std::shared_ptr<Node> splitNode(std::shared_ptr<Node> n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
 
         public:
 
-        int maxNodeEntries{};
-        int minNodeEntries{};
-        std::vector<uint32_t> ids;
+        int m_maxNodeEntries{};
+        int m_minNodeEntries{};
+        std::vector<int> m_ids;
 
         RTree();
 
-        void add(Rectangle& r, uint32_t id);
+        void add(Rectangle& r, int id);
         void contains(Rectangle& r);
-        bool del(Rectangle& r, uint32_t id);
-        Node& getNode(uint32_t id);
-        uint32_t getRootNodeId() const;
+        bool del(Rectangle& r, int id);
+        std::shared_ptr<Node> getNode(int id);
+        int getRootNodeId() const;
         void intersects(Rectangle& r);
-        uint32_t numNodes() const;
+        int numNodes() const;
         void nearest(Point& p, float furthestDistance);
         void nearestNUnsorted(Point& p, int count, float furthestDistance);
         void nearestN(Point& p, int count, float furthestDistance);
