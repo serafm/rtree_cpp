@@ -1,6 +1,7 @@
 #include "Node.h"
 #include <cstddef>
 #include <iostream>
+#include "RTree.h"
 
 namespace rtree {
 
@@ -29,7 +30,7 @@ namespace rtree {
             std::exit(1);
         }
 
-        if (entries.size() <= entries.capacity()) {
+        if (entries.size() < RTree::DEFAULT_MAX_NODE_ENTRIES) {
             entries.push_back(entry);
             ids.push_back(id);
         }

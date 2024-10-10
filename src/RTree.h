@@ -21,11 +21,6 @@ namespace rtree {
 
         private:
 
-        static constexpr int DEFAULT_MAX_NODE_ENTRIES = 50;
-        static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
-        static constexpr int ENTRY_STATUS_ASSIGNED = 0;
-        static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
-
         // List of all nodes in the tree
         std::map<int, std::shared_ptr<Node>> m_nodeMap;
         std::vector<int8_t> m_entryStatus;
@@ -34,25 +29,30 @@ namespace rtree {
         std::stack<int> m_parentsEntry;
         int m_treeHeight = 1;
         int m_rootNodeId = 1;
-        Node m_root;
+        std::shared_ptr<Node> m_root;
         int m_size = 0;
         int m_highestUsedNodeId = m_rootNodeId;
         std::stack<int> m_deletedNodeIds;
 
         void add(float minX, float minY, float maxX, float maxY, int id, int level);
         std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
-        void condenseTree(std::shared_ptr<Node> l);
+        void condenseTree(const std::shared_ptr<Node> &l);
         std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
         static Rectangle& calculateMBR(std::shared_ptr<Node> n);
         void createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance);
         int getNextNodeId();
         bool intersects(Rectangle& r, std::shared_ptr<Node> n);
         float nearest(Point& p, std::shared_ptr<Node> n, float furthestDistanceSq, Collections::IntVector& nearestIds);
-        void pickSeeds(std::shared_ptr<Node> n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, std::shared_ptr<Node> newNode);
-        int pickNext(std::shared_ptr<Node> n, std::shared_ptr<Node> newNode);
-        std::shared_ptr<Node> splitNode(std::shared_ptr<Node> n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
+        static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
+        int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
+        std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
 
         public:
+
+        static constexpr int DEFAULT_MAX_NODE_ENTRIES = 50;
+        static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
+        static constexpr int ENTRY_STATUS_ASSIGNED = 0;
+        static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
 
         int m_maxNodeEntries{};
         int m_minNodeEntries{};
@@ -60,7 +60,7 @@ namespace rtree {
 
         RTree();
 
-        void add(Rectangle& r, int id);
+        void add(const Rectangle & r, int id);
         void contains(Rectangle& r);
         bool del(Rectangle& r, int id);
         std::shared_ptr<Node> getNode(int id);
