@@ -5,9 +5,7 @@
 
 namespace rtree {
 
-    class RTree;
-
-    Node::Node(uint32_t id, int level)
+    Node::Node(int id, int level)
     : nodeId(id),
     level(level)
     {
@@ -24,7 +22,7 @@ namespace rtree {
 
     Node::~Node() = default;
 
-    void Node::addEntry(float minX, float minY, float maxX, float maxY, uint32_t id) {
+    void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
         Entry entry{minX, minY, maxX, maxY, id};
 
         if (isEmptyOrIncomplete(entry)) {
@@ -32,7 +30,7 @@ namespace rtree {
             std::exit(1);
         }
 
-        if (entries.size() <= entries.capacity()) {
+        if (entries.size() < RTree::DEFAULT_MAX_NODE_ENTRIES) {
             entries.push_back(entry);
             ids.push_back(id);
         }
@@ -52,7 +50,7 @@ namespace rtree {
         entryCount++;
     }
 
-    int Node::findEntry(float minX, float minY, float maxX, float maxY, uint32_t id) {
+    int Node::findEntry(float minX, float minY, float maxX, float maxY, int id) {
         for (Entry entry : entries) {
             if (id == entry.id && entry.minX == minX && entry.minY == minY && entry.maxX == maxX && entry.maxY == maxY) {
                 std::cout << "Entry found with ID: " << entry.id << std::endl;
@@ -62,7 +60,7 @@ namespace rtree {
         return -1;
     }
 
-    void Node::deleteEntry(uint32_t index) {
+    void Node::deleteEntry(int index) {
         int lastIndex = entryCount - 1;
         if (index != lastIndex) {
             // Swap the entry to delete with the last entry
@@ -123,7 +121,7 @@ namespace rtree {
         }
     }
 
-    uint32_t Node::getNodeId() const {
+    int Node::getNodeId() const {
         return nodeId;
     }
 
@@ -140,7 +138,7 @@ namespace rtree {
     }
 
     bool Node::isEmptyOrIncomplete(Entry& entry) {
-        if (entry.id == NULL || entry.minX == 0 || entry.maxX == 0 || entry.minY == 0 || entry.maxY == 0) {
+        if (entry.id == 0 || entry.minX == 0 || entry.maxX == 0 || entry.minY == 0 || entry.maxY == 0) {
             return true;
         }
         return false;

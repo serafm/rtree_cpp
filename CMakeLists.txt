@@ -3,10 +3,6 @@ project(rtree_cpp_v2)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Add Google Test
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
 add_executable(rtree_cpp_v2
         src/Node.h
         src/Rectangle.cpp

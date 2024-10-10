@@ -9,7 +9,7 @@ using namespace std;
 
 int main() {
 
-    string filepath = "/home/serafm/Documents/rtree-cpp/data/T3_COUNTY_continental_mbr_no_points_small.csv";
+    string filepath = "/home/serafm/Downloads/backup/rtree-cpp/data/T3_COUNTY_continental_mbr_no_points.csv";
     std::cout << "----- RTree Spatial Index -----" << endl;
     //std::cout << "Enter file path of MBRs: " << std::endl;
     //std::cin >> filepath;
@@ -21,10 +21,10 @@ int main() {
     }
 
     // Initialize RTree Spatial Index
-    auto rtree = RTree();
+    RTree rtree;
 
     string mbr_line;
-    uint32_t id = 1;
+    int id = 1;
     // Read the file and add the rectangles into the tree
     std::cout << "----- Indexing rectangles to the tree -----" << std::endl;
     while (getline(inFile, mbr_line)) {
