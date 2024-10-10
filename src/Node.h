@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-namespace rtree {
+namespace spatialindex {
 
     class RTree;
 

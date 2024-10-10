@@ -3,7 +3,7 @@
 #include <iostream>
 #include "RTree.h"
 
-namespace rtree {
+namespace spatialindex {
 
     Node::Node(int id, int level)
     : nodeId(id),
@@ -25,10 +25,10 @@ namespace rtree {
     void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
         Entry entry{minX, minY, maxX, maxY, id};
 
-        if (isEmptyOrIncomplete(entry)) {
+        /*if (isEmptyOrIncomplete(entry)) {
             std::cerr << "ERROR: Entry is empty or incomplete!" << std::endl;
             std::exit(1);
-        }
+        }*/
 
         if (entries.size() < RTree::DEFAULT_MAX_NODE_ENTRIES) {
             entries.push_back(entry);

@@ -15,7 +15,7 @@ namespace Collections {
     class PriorityQueue;
 }
 
-namespace rtree {
+namespace spatialindex {
 
     class RTree {
 
@@ -38,11 +38,11 @@ namespace rtree {
         std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
         void condenseTree(const std::shared_ptr<Node> &l);
         std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
-        static Rectangle& calculateMBR(std::shared_ptr<Node> n);
+        static Rectangle& calculateMBR(Node &n);
         void createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance);
         int getNextNodeId();
-        bool intersects(Rectangle& r, std::shared_ptr<Node> n);
-        float nearest(Point& p, std::shared_ptr<Node> n, float furthestDistanceSq, Collections::IntVector& nearestIds);
+        bool intersects(Rectangle &r, Node &n);
+        float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, Collections::IntVector &nearestIds);
         static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
         std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
@@ -62,8 +62,8 @@ namespace rtree {
 
         void add(const Rectangle & r, int id);
         void contains(Rectangle& r);
-        bool del(Rectangle& r, int id);
-        std::shared_ptr<Node> getNode(int id);
+        bool del(Rectangle &r, int id);
+        std::shared_ptr<Node> &getNode(int id);
         int getRootNodeId() const;
         void intersects(Rectangle& r);
         int numNodes() const;

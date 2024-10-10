@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace rtree {
+namespace spatialindex {
 
     Rectangle::Rectangle() {
         this->minX = std::numeric_limits<float>::max();

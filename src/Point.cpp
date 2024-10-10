@@ -1,7 +1,7 @@
 #include "Point.h"
 #include <cmath>
 
-namespace rtree {
+namespace spatialindex {
 
     Point::Point(float x, float y) {
         this->x = x;
