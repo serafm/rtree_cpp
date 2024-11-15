@@ -86,6 +86,8 @@ namespace Collections {
          */
         void check();
 
+        void setNode(int index, int value, float priority);
+
     };
 }
 

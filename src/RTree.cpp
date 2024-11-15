@@ -676,7 +676,14 @@ namespace spatialindex {
         float furthestDistanceSq = furthestDistance * furthestDistance;
 
         while (m_parents.size() > 0) {
+            // Validate the node pointer
             auto n = getNode(m_parents.top());
+            if (n == nullptr) {
+                // Handle error or skip iteration
+                m_parents.pop();
+                m_parentsEntry.pop();
+                continue;
+            }
             int startIndex = m_parentsEntry.top() + 1;
 
             if (!n->isLeaf()) {
@@ -772,7 +779,7 @@ namespace spatialindex {
     void RTree::nearestN(Point& p, int count, float furthestDistance) {
         auto distanceQueue = Collections::PriorityQueue(false);
         createNearestNDistanceQueue(p, count, distanceQueue, furthestDistance);
-        distanceQueue.setSortOrder(true);
+        //distanceQueue.setSortOrder(true);
 
         auto response = [&]() {
             // Here we simply print to console
