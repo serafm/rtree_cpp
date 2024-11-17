@@ -4,9 +4,9 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <queue>
 
 #include "Collections/IntVector.h"
-#include "Collections/PriorityQueue.h"
 #include "Rectangle.h"
 
 namespace spatialindex {
@@ -510,6 +510,7 @@ namespace spatialindex {
 
 
     float RTree::nearest(Point& p, std::shared_ptr<Node>& n, float furthestDistanceSq, Collections::IntVector& nearestIds) {
+        // TODO: Fix calculation its not accurate.
         for (int i = 0; i < n->entryCount; i++) {
             float tempDistanceSq = Rectangle::distanceSq(n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY, p.x, p.y);
             if (n->isLeaf()) { // for leaves, the distance is an actual nearest distance
@@ -642,22 +643,16 @@ namespace spatialindex {
         float furthestDistanceSq = furthestDistance * furthestDistance;
         auto nearestIds = Collections::IntVector();
 
-        std::cout << "Nearest rectangles to point (" << p.x << "," << p.y << ") are: " << std::endl;
 
-        auto printNearest = [&]() {
-            for (int i = 0; i < nearestIds.size(); i++) {
-                std::cout << "Rectangle with ID: " << nearestIds.get(i) << std::endl;
-            }
-        };
+        auto dist = nearest(p, rootNode, furthestDistanceSq, nearestIds);
 
-        nearest(p, rootNode, furthestDistanceSq, nearestIds);
-
-        printNearest();
+        std::cout << "\nNearest rectangle to point (" << p.x << "," << p.y << "): " << std::endl;
+        std::cout << "ID: " << nearestIds.get(0) << " Distance: " << dist << std::endl;
 
         nearestIds.reset();
     }
 
-    void RTree::createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance) {
+    void RTree::createNearestNDistanceQueue(Point& p, int count, float furthestDistance) {
         // Return immediately if given an invalid "count" parameter
         if (count <= 0) {
             return;
@@ -669,13 +664,16 @@ namespace spatialindex {
         m_parentsEntry = std::stack<int>();
         m_parentsEntry.push(-1);
 
-        auto savedValues = Collections::IntVector();
-        float savedPriority = 0;
+        // Priority queue for nearest neighbors (min-heap by distance)
+        //std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> m_distanceQueue;
+
+        // auto savedValues = Collections::IntVector();
+        // float savedPriority = 0;
 
         // Initialize furthest distance square
         float furthestDistanceSq = furthestDistance * furthestDistance;
 
-        while (m_parents.size() > 0) {
+        while (!m_parents.empty()) {
             // Validate the node pointer
             auto n = getNode(m_parents.top());
             if (n == nullptr) {
@@ -688,7 +686,7 @@ namespace spatialindex {
 
             if (!n->isLeaf()) {
                 // Traverse each entry in the index node
-                bool near = false;
+                bool foundNearChild = false;
                 for (int i = startIndex; i < n->entryCount; i++) {
                     if (Rectangle::distanceSq(n->entries[i].minX, n->entries[i].minY,
                                               n->entries[i].maxX, n->entries[i].maxY,
@@ -697,11 +695,11 @@ namespace spatialindex {
                         m_parentsEntry.pop();
                         m_parentsEntry.push(i);
                         m_parentsEntry.push(-1);
-                        near = true;
+                        foundNearChild = true;
                         break;
                     }
                 }
-                if (near) {
+                if (foundNearChild) {
                     continue;
                 }
             } else {
@@ -713,34 +711,17 @@ namespace spatialindex {
                     int entryId = n->ids[i];
 
                     if (entryDistanceSq <= furthestDistanceSq) {
-                        distanceQueue.insert(entryId, entryDistanceSq);
+                        // Add to the priority queue
+                        m_distanceQueue.emplace(entryDistanceSq, entryId);
 
-                        // Adjust queue size and update furthest distance square
-                        while (distanceQueue.size() > count) {
-                            int value = distanceQueue.getValue();
-                            float distanceSq = distanceQueue.getPriority();
-                            distanceQueue.pop();
-
-                            // Handle duplicates
-                            if (distanceSq == distanceQueue.getPriority()) {
-                                savedValues.add(value);
-                                savedPriority = distanceSq;
-                            } else {
-                                savedValues.reset();
-                            }
+                        // Maintain the size of the priority queue
+                        if (m_distanceQueue.size() > count) {
+                            m_distanceQueue.pop();
                         }
 
-                        // Reinsert saved values if they match the priority
-                        if (savedValues.size() > 0 && savedPriority == distanceQueue.getPriority()) {
-                            for (int svi = 0; svi < savedValues.size(); svi++) {
-                                distanceQueue.insert(savedValues.get(svi), savedPriority);
-                            }
-                            savedValues.reset();
-                        }
-
-                        // Update furthestDistanceSq to narrow search
-                        if (distanceQueue.size() >= count) {
-                            furthestDistanceSq = std::max(furthestDistanceSq, distanceQueue.getPriority());
+                        // Update furthestDistanceSq if the queue is full
+                        if (m_distanceQueue.size() >= count) {
+                            furthestDistanceSq = m_distanceQueue.top().first;
                         }
                     }
                 }
@@ -752,6 +733,28 @@ namespace spatialindex {
         }
     }
 
+    void RTree::printSortedQueue(std::priority_queue<std::pair<float, int>>& queue) {
+        std::vector<std::pair<float, int>> elements;
+
+        // Extract all elements from the queue
+        while (!queue.empty()) {
+            elements.push_back(queue.top());
+            queue.pop();
+        }
+
+        // Sort in ascending order (smallest distance first)
+        std::sort(elements.begin(), elements.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first;
+        });
+
+        // Print sorted elements
+        std::cout << "\nNearest " << elements.size() << " rectangles (ascending order):" << std::endl;
+        for (const auto& [distance, id] : elements) {
+            std::cout << "ID: " << id << " Distance: " << distance << std::endl;
+        }
+    }
+
+
     void RTree::nearestNUnsorted(Point& p, int count, float furthestDistance) {
         // This implementation is designed to give good performance
         // where
@@ -762,34 +765,22 @@ namespace spatialindex {
         //
         // Note that more than N items will be returned if items N and N+x have the
         // same priority.
-        Collections::PriorityQueue distanceQueue = Collections::PriorityQueue(false);
-        createNearestNDistanceQueue(p, count, distanceQueue, furthestDistance);
+        createNearestNDistanceQueue(p, count, furthestDistance);
 
         auto response = [&]() {
             // Here we simply print to console instead of logging
-            std::cout << "Rectangle with distance= " << distanceQueue.getValue() << std::endl;
-            distanceQueue.pop();
+            //std::cout << "Rectangle with distance= " << m_distanceQueue.getValue() << std::endl;
+            m_distanceQueue.pop();
         };
 
-        while (distanceQueue.size() > 0) {
+        while (m_distanceQueue.size() > 0) {
             response();
         }
     }
 
     void RTree::nearestN(Point& p, int count, float furthestDistance) {
-        auto distanceQueue = Collections::PriorityQueue(false);
-        createNearestNDistanceQueue(p, count, distanceQueue, furthestDistance);
-        //distanceQueue.setSortOrder(true);
-
-        auto response = [&]() {
-            // Here we simply print to console
-            std::cout << "Rectangle with distance= " << distanceQueue.getValue() << std::endl;
-            distanceQueue.pop();
-        };
-
-        //while (distanceQueue.size() > 0) {
-            response();
-        //}
+        createNearestNDistanceQueue(p, count, furthestDistance);
+        printSortedQueue(m_distanceQueue);
     }
 
     void RTree::intersects(Rectangle& r) {

@@ -34,13 +34,9 @@ int main() {
     std::cout << "RTree size: " << rtree.treeSize() << std::endl;
     std::cout << "Number of nodes: " << rtree.numNodes() << std::endl;
 
-    std::cout << "Nearest:" << std::endl;
-    spatialindex::Point p{-90.4, 54.77};
-    rtree.nearest(p, 100);
-
-    std::cout << "Nearest N:" << std::endl;
-    spatialindex::Point p2{-90.4, 54.77};
-    rtree.nearestN(p2, 5, 100);
+    spatialindex::Point p{-91.0804, 30.5159};
+    rtree.nearest(p, 10);
+    rtree.nearestN(p, 5, 10);
 
     return 0;
 }

@@ -13,8 +13,6 @@ add_executable(rtree_cpp_v2
         src/Node.cpp
         src/Point.cpp
         src/Point.h
-        src/Collections/PriorityQueue.cpp
-        src/Collections/PriorityQueue.h
         src/Collections/IntVector.cpp
         src/Collections/IntVector.h
         src/Collections/FloatVector.cpp
