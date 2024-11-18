@@ -9,11 +9,13 @@ add_executable(rtree_cpp_v2
         src/Rectangle.h
         src/RTree.cpp
         src/RTree.h
-        src/Main.cpp
+        src/CreateSpatialIndex.cpp
         src/Node.cpp
         src/Point.cpp
         src/Point.h
         src/Collections/IntVector.cpp
         src/Collections/IntVector.h
         src/Collections/FloatVector.cpp
-        src/Collections/FloatVector.h)
+        src/Collections/FloatVector.h
+        src/Main.cpp
+        src/CreateSpatialIndex.h)
