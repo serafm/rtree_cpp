@@ -4,6 +4,7 @@
 #define RTREE_H
 
 #include <map>
+#include <queue>
 #include <stack>
 #include <vector>
 #include "Node.h"
@@ -15,7 +16,7 @@ namespace Collections {
     class PriorityQueue;
 }
 
-namespace rtree {
+namespace spatialindex {
 
     class RTree {
 
@@ -33,19 +34,21 @@ namespace rtree {
         int m_size = 0;
         int m_highestUsedNodeId = m_rootNodeId;
         std::stack<int> m_deletedNodeIds;
+        std::priority_queue<std::pair<float, int>> m_distanceQueue;
 
         void add(float minX, float minY, float maxX, float maxY, int id, int level);
         std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
         void condenseTree(const std::shared_ptr<Node> &l);
         std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
-        static Rectangle& calculateMBR(std::shared_ptr<Node> n);
-        void createNearestNDistanceQueue(Point& p, int count, Collections::PriorityQueue& distanceQueue, float furthestDistance);
+        static Rectangle& calculateMBR(Node &n);
+        void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
         int getNextNodeId();
-        bool intersects(Rectangle& r, std::shared_ptr<Node> n);
-        float nearest(Point& p, std::shared_ptr<Node> n, float furthestDistanceSq, Collections::IntVector& nearestIds);
+        bool intersects(Rectangle &r, Node &n);
+        float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, Collections::IntVector &nearestIds);
         static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
         std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
+        static void printSortedQueue(std::priority_queue<std::pair<float, int>>& queue);
 
         public:
 
@@ -62,8 +65,8 @@ namespace rtree {
 
         void add(const Rectangle & r, int id);
         void contains(Rectangle& r);
-        bool del(Rectangle& r, int id);
-        std::shared_ptr<Node> getNode(int id);
+        bool del(Rectangle &r, int id);
+        std::shared_ptr<Node> &getNode(int id);
         int getRootNodeId() const;
         void intersects(Rectangle& r);
         int numNodes() const;

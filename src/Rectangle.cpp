@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace rtree {
+namespace spatialindex {
 
     Rectangle::Rectangle() {
         this->minX = std::numeric_limits<float>::max();
@@ -94,26 +94,22 @@ namespace rtree {
     }*/
 
     float Rectangle::distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY) {
-        float distanceSqX = 0;
-        float distanceSqY = 0;
+        float distanceX = 0;
+        float distanceY = 0;
 
         if (minX > pX) {
-            distanceSqX = minX - pX;
-            distanceSqX *= distanceSqX;
+            distanceX = minX - pX;
         } else if (pX > maxX) {
-            distanceSqX = pX - maxX;
-            distanceSqX *= distanceSqX;
+            distanceX = pX - maxX;
         }
 
         if (minY > pY) {
-            distanceSqY = minY - pY;
-            distanceSqY *= distanceSqY;
+            distanceY = minY - pY;
         } else if (pY > maxY) {
-            distanceSqY = pY - maxY;
-            distanceSqY *= distanceSqY;
+            distanceY = pY - maxY;
         }
 
-        return std::sqrt(distanceSqX + distanceSqY);
+        return std::sqrt(distanceX * distanceX + distanceY * distanceY);
     }
 
     /*float Rectangle::distance(Rectangle r) const {

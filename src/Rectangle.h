@@ -6,7 +6,7 @@
 #include <string>
 #include "Point.h"
 
-namespace rtree {
+namespace spatialindex {
 
     class Rectangle {
     public:
