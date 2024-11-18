@@ -664,12 +664,6 @@ namespace spatialindex {
         m_parentsEntry = std::stack<int>();
         m_parentsEntry.push(-1);
 
-        // Priority queue for nearest neighbors (min-heap by distance)
-        //std::priority_queue<std::pair<float, int>, std::vector<std::pair<float, int>>, std::greater<>> m_distanceQueue;
-
-        // auto savedValues = Collections::IntVector();
-        // float savedPriority = 0;
-
         // Initialize furthest distance square
         float furthestDistanceSq = furthestDistance * furthestDistance;
 
@@ -789,58 +783,55 @@ namespace spatialindex {
     }
 
     void RTree::contains(Rectangle& r) {
-        // find all rectangles in the tree that are contained by the passed rectangle
-        // written to be non-recursive (should model other searches on this?)
         m_parents = std::stack<int>();
         m_parents.push(m_rootNodeId);
 
         m_parentsEntry = std::stack<int>();
         m_parentsEntry.push(-1);
 
-        auto response = [&]() {
-            for (int id : m_ids) {
-                std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
-            }
-        };
-
         while (!m_parents.empty()) {
             auto n = getNode(m_parents.top());
             int startIndex = m_parentsEntry.top() + 1;
 
             if (!n->isLeaf()) {
-                // go through every entry in the index node to check
-                // if it intersects the passed rectangle. If so, it
-                // could contain entries that are contained.
+                // Check for intersections with the passed rectangle
                 bool intersects = false;
                 for (int i = startIndex; i < n->entryCount; i++) {
                     if (Rectangle::intersects(r.minX, r.minY, r.maxX, r.maxY,
-                                             n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY)) {
-                        m_parents.push(n->ids[i]);
-                        m_parentsEntry.pop();
-                        m_parentsEntry.push(i); // this becomes the start index when the child has been searched
-                        m_parentsEntry.push(-1);
-                        intersects = true;
-                        break; // ie go to next iteration of while()
-                                             }
+                                               n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY))
+                        {
+                            m_parents.push(n->ids[i]);
+                            m_parentsEntry.pop();
+                            m_parentsEntry.push(i); // Update start index for child node
+                            m_parentsEntry.push(-1);
+                            intersects = true;
+                            break; // Go to the next iteration of while()
+                        }
                 }
                 if (intersects) {
-                    continue;
+                    continue; // Continue to the next parent node
                 }
             } else {
-                // go through every entry in the leaf to check if
-                // it is contained by the passed rectangle
+                // Check for containment in the leaf node
                 for (int i = 0; i < n->entryCount; i++) {
                     if (Rectangle::contains(r.minX, r.minY, r.maxX, r.maxY,
-                                           n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY)) {
-                        m_ids.push_back(n->ids[i]);
-                    }
+                                             n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY))
+                        {
+                            m_ids.push_back(n->ids[i]);
+                        }
                 }
             }
 
+            // Pop the current node and entry index
             m_parents.pop();
             m_parentsEntry.pop();
         }
-        response();
+        printContainedRectangles(m_ids);
     }
 
+    void RTree::printContainedRectangles(const std::vector<int>& ids) {
+        for (int id : ids) {
+            std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
+        }
+    }
 }

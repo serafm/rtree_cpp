@@ -41,6 +41,8 @@ namespace spatialindex {
         void condenseTree(const std::shared_ptr<Node> &l);
         std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
         static Rectangle& calculateMBR(Node &n);
+
+        // Calculate and add into a queue the nearest N rectangles to a point
         void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
         int getNextNodeId();
         bool intersects(Rectangle &r, Node &n);
@@ -49,6 +51,11 @@ namespace spatialindex {
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
         std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
         static void printSortedQueue(std::priority_queue<std::pair<float, int>>& queue);
+        Rectangle getBounds();
+        bool del(Rectangle &r, int id);
+        std::shared_ptr<Node> &getNode(int id);
+        int getRootNodeId() const;
+        static void printContainedRectangles(const std::vector<int>& ids);
 
         public:
 
@@ -64,17 +71,26 @@ namespace spatialindex {
         RTree();
 
         void add(const Rectangle & r, int id);
+
+        // Find all rectangles in the tree that are contained by the passed rectangle
         void contains(Rectangle& r);
-        bool del(Rectangle &r, int id);
-        std::shared_ptr<Node> &getNode(int id);
-        int getRootNodeId() const;
+
         void intersects(Rectangle& r);
-        int numNodes() const;
+
+        // Retrieve the nearest rectangle to a point
         void nearest(Point& p, float furthestDistance);
+
+        // Retrieve the N nearest rectangles to a point without sorting the results
         void nearestNUnsorted(Point& p, int count, float furthestDistance);
+
+        // Retrieve the N nearest rectangles to a point with sorted results
         void nearestN(Point& p, int count, float furthestDistance);
+
+        // Return R-tree size
         int treeSize() const;
-        Rectangle getBounds();
+
+        // Return R-tree number of nodes
+        int numNodes() const;
 
     };
 }

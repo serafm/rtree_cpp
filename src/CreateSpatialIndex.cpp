@@ -42,11 +42,11 @@ namespace spatialindex {
                 break;
             }
             case 1: { // Contains
-                // Example block in case 1
-                // Add any necessary implementation here
+                Rectangle rect{-100,50,100, -50};
+                rtree.contains(rect);
                 break;
             }
-            case 2: {
+            case 2: { // Intersects
                 // Add any necessary implementation
                 break;
             }
