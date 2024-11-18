@@ -3,5 +3,5 @@ using namespace spatialindex;
 
 int main() {
     spatialindex::CreateSpatialIndex::Start();
-    spatialindex::CreateSpatialIndex::Query(1);
+    spatialindex::CreateSpatialIndex::Query(3);
 }

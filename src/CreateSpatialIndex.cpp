@@ -47,11 +47,13 @@ namespace spatialindex {
                 break;
             }
             case 2: { // Intersects
-                // Add any necessary implementation
+                auto rect = Rectangle{-100,50,100, -50};
+                rtree.intersects(rect);
                 break;
             }
             default: {
-                std::cerr << "Invalid query type" << std::endl;
+                std::cerr << "\nInvalid query type. Please try again these are the options:" << std::endl;
+                std::cerr << "Nearest: 0 \nContains: 1 \nIntersects: 2" << std::endl;
                 break;
             }
         }

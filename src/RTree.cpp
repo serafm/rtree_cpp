@@ -532,24 +532,25 @@ namespace spatialindex {
         return furthestDistanceSq;
     }
 
-    bool RTree::intersects(Rectangle& r, Node& n) {
-        for (int i = 0; i < n.entryCount; i++) {
+    bool RTree::intersects(Rectangle& r, std::shared_ptr<Node>& n) {
+        // TODO: Implement the logic here
+        for (int i = 0; i < n->entryCount; i++) {
             if (Rectangle::intersects(
                 r.minX,
                 r.minY,
                 r.maxX,
                 r.maxY,
-                n.entries[i].minX,
-                n.entries[i].minY,
-                n.entries[i].maxX,
-                n.entries[i].maxY)) {
-                if (n.isLeaf()) {
+                n->entries[i].minX,
+                n->entries[i].minY,
+                n->entries[i].maxX,
+                n->entries[i].maxY)) {
+                if (n->isLeaf()) {
                     // TODO: Lambda function
                     //if (!v.execute(n.ids[i])) {
                       //  return false;
                     //}
                 } else {
-                    std::shared_ptr<Node>& childNode = getNode(n.ids[i]);
+                    std::shared_ptr<Node>& childNode = getNode(n->ids[i]);
                     //if (!intersects(r, v, childNode)) {
                       //  return false;
                     //}
@@ -777,9 +778,9 @@ namespace spatialindex {
         printSortedQueue(m_distanceQueue);
     }
 
-    void RTree::intersects(Rectangle& r) {
+    void RTree::intersects(Rectangle& rect) {
         auto rootNode = getNode(m_rootNodeId);
-        intersects(r, *rootNode);
+        intersects(rect, rootNode);
     }
 
     void RTree::contains(Rectangle& r) {

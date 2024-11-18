@@ -45,7 +45,7 @@ namespace spatialindex {
         // Calculate and add into a queue the nearest N rectangles to a point
         void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
         int getNextNodeId();
-        bool intersects(Rectangle &r, Node &n);
+        bool intersects(Rectangle &r, std::shared_ptr<Node>& n);
         float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, Collections::IntVector &nearestIds);
         static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
