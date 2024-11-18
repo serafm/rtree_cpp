@@ -6,7 +6,8 @@
 #include <vector>
 #include <queue>
 
-#include "Collections/IntVector.h"
+#include <boost/container/vector.hpp>
+
 #include "Rectangle.h"
 
 namespace spatialindex {
@@ -509,17 +510,17 @@ namespace spatialindex {
     }
 
 
-    float RTree::nearest(Point& p, std::shared_ptr<Node>& n, float furthestDistanceSq, Collections::IntVector& nearestIds) {
+    float RTree::nearest(Point& p, std::shared_ptr<Node>& n, float furthestDistanceSq, boost::container::vector<int>& nearestIds) {
         // TODO: Fix calculation its not accurate.
         for (int i = 0; i < n->entryCount; i++) {
             float tempDistanceSq = Rectangle::distanceSq(n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY, p.x, p.y);
             if (n->isLeaf()) { // for leaves, the distance is an actual nearest distance
                 if (tempDistanceSq < furthestDistanceSq) {
                     furthestDistanceSq = tempDistanceSq;
-                    nearestIds.reset();
+                    nearestIds.clear();
                 }
                 if (tempDistanceSq <= furthestDistanceSq) {
-                    nearestIds.add(n->ids[i]);
+                    nearestIds.push_back(n->ids[i]);
                 }
             } else { // for index nodes, only go into them if they potentially could have
                 // a rectangle nearer than actualNearest
@@ -642,15 +643,14 @@ namespace spatialindex {
         auto rootNode = getNode(m_rootNodeId);
 
         float furthestDistanceSq = furthestDistance * furthestDistance;
-        auto nearestIds = Collections::IntVector();
-
+        auto nearestIds = boost::container::vector<int>();
 
         auto dist = nearest(p, rootNode, furthestDistanceSq, nearestIds);
 
         std::cout << "\nNearest rectangle to point (" << p.x << "," << p.y << "): " << std::endl;
-        std::cout << "ID: " << nearestIds.get(0) << " Distance: " << dist << std::endl;
+        std::cout << "ID: " << nearestIds.at(0) << " Distance: " << dist << std::endl;
 
-        nearestIds.reset();
+        nearestIds.clear();
     }
 
     void RTree::createNearestNDistanceQueue(Point& p, int count, float furthestDistance) {

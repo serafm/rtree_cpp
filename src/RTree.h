@@ -3,10 +3,12 @@
 #ifndef RTREE_H
 #define RTREE_H
 
+#include <boost/container/vector.hpp>
 #include <map>
 #include <queue>
 #include <stack>
 #include <vector>
+
 #include "Node.h"
 #include "Point.h"
 #include "Rectangle.h"
@@ -46,7 +48,7 @@ namespace spatialindex {
         void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
         int getNextNodeId();
         bool intersects(Rectangle &r, std::shared_ptr<Node>& n);
-        float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, Collections::IntVector &nearestIds);
+        float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, boost::container::vector<int> &nearestIds);
         static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
         std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
