@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
-#include <vector>
 #include <queue>
+#include <set>
+#include <vector>
 
 #include <boost/container/vector.hpp>
 
@@ -24,7 +25,6 @@ namespace spatialindex {
 
     void RTree::add(const Rectangle & r, const int id)
     {
-        // std::cout << "Adding rectangle with ID: " << id << std::endl;
         add(r.minX, r.minY, r.maxX, r.maxY, id, 1);
         m_size++;
     }
@@ -83,7 +83,7 @@ namespace spatialindex {
     std::shared_ptr<Node> RTree::splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId)
     {
         // entryStatus.assign(initialEntryStatus.begin(), initialEntryStatus.end());
-        auto newNode =  std::make_shared<Node>(getNextNodeId(), n->level);
+        auto newNode = std::make_shared<Node>(getNextNodeId(), n->level);
         m_nodeMap.insert(std::make_pair(newNode->nodeId, newNode));
 
         if (newNode != nullptr) {
@@ -123,8 +123,6 @@ namespace spatialindex {
                         m_entryStatus[i] = ENTRY_STATUS_ASSIGNED;
                         newNode->addEntry(n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY, n->ids[i]);
                         n->deleteEntry(i);
-                        n->entries[i] = {0, 0, 0, 0};
-                        n->entryCount = n->entryCount - 1;
                     }
                 }
                 break;
@@ -261,7 +259,7 @@ namespace spatialindex {
         int next = 0;
         int nextGroup = 0;
 
-        for (int i = 0; i < m_maxNodeEntries; i++) {
+        for (int i = 0; i < n->entryCount; i++) {
             if (m_entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
                 if (n->ids[i] == -1) {
                     std::cerr << "Error: Node " << n->nodeId << ", entry " << i << " is null" << std::endl;
@@ -329,10 +327,8 @@ namespace spatialindex {
         } else {
             // move to new node.
             newNode->addEntry(n->entries[next].minX, n->entries[next].minY, n->entries[next].maxX, n->entries[next].maxY, n->ids[next]);
-            n->ids[next] = 0;
-            n->entries[next] = {0, 0, 0, 0};
+            n->deleteEntry(next);
         }
-
         return next;
     }
 
@@ -533,35 +529,27 @@ namespace spatialindex {
         return furthestDistanceSq;
     }
 
-    bool RTree::intersects(Rectangle& r, std::shared_ptr<Node>& n) {
-        // TODO: Implement the logic here
+    std::set<int> RTree::intersects(Rectangle& r, std::shared_ptr<Node>& n) {
+        std::set<int> intersectedRectangles;
+        // Iterate through each entry in the current node
         for (int i = 0; i < n->entryCount; i++) {
-            if (Rectangle::intersects(
-                r.minX,
-                r.minY,
-                r.maxX,
-                r.maxY,
-                n->entries[i].minX,
-                n->entries[i].minY,
-                n->entries[i].maxX,
-                n->entries[i].maxY)) {
-                if (n->isLeaf()) {
-                    // TODO: Lambda function
-                    //if (!v.execute(n.ids[i])) {
-                      //  return false;
-                    //}
-                } else {
-                    std::shared_ptr<Node>& childNode = getNode(n->ids[i]);
-                    //if (!intersects(r, v, childNode)) {
-                      //  return false;
-                    //}
-                    }
+            if (n->isLeaf()) {
+                // Check if the rectangles intersect
+                if (Rectangle::intersects(r.minX, r.minY, r.maxX, r.maxY, n->entries[i].minX, n->entries[i].minY,
+                                          n->entries[i].maxX, n->entries[i].maxY)) {
+                    // Collect the intersecting rectangles
+                    intersectedRectangles.emplace(n->entries[i].id);
+                }
+            } else {
+                // If the node is not a leaf, the entry represents a child node
+                // Recursively check the child node for intersections
+                intersects(r, getNode(n->ids[i]));
             }
         }
-        return true;
+        return intersectedRectangles;
     }
 
-    Rectangle& RTree::calculateMBR(Node& n) {
+    Rectangle & RTree::calculateMBR(Node& n) {
         auto mbr = Rectangle();
 
         for (int i = 0; i < n.entryCount; i++) {
@@ -780,7 +768,8 @@ namespace spatialindex {
 
     void RTree::intersects(Rectangle& rect) {
         auto rootNode = getNode(m_rootNodeId);
-        intersects(rect, rootNode);
+        auto result = intersects(rect, rootNode);
+        printIntersectedRectangles(result);
     }
 
     void RTree::contains(Rectangle& r) {
@@ -833,6 +822,12 @@ namespace spatialindex {
     void RTree::printContainedRectangles(const std::vector<int>& ids) {
         for (int id : ids) {
             std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
+        }
+    }
+
+    void RTree::printIntersectedRectangles(const std::set<int>& ids) {
+        for (int id : ids) {
+            std::cout << "Rectangle with ID: " << id << " was intersected" << std::endl;
         }
     }
 }

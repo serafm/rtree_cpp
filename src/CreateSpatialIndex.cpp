@@ -1,6 +1,5 @@
 #include "CreateSpatialIndex.h"
 
-
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -32,23 +31,40 @@ namespace spatialindex {
         std::cout << "Number of nodes: " << rtree.numNodes() << std::endl;
     }
 
-    void CreateSpatialIndex::Query(int type) {
-
+    void CreateSpatialIndex::Query(int type, const std::vector<std::vector<float>>& params) {
         switch (type) {
             case 0: { // Nearest
-                Point p{-91.0804, 30.5159};
-                rtree.nearest(p, 10);
-                rtree.nearestN(p, 5, 10);
+                for (const auto& point : params) {
+                    if (point.size() == 2) {
+                        Point p{point[0], point[1]};
+                        rtree.nearest(p, 10);
+                        rtree.nearestN(p, 5, 10);
+                    } else {
+                        std::cerr << "Invalid point for Nearest query.\n";
+                    }
+                }
                 break;
             }
             case 1: { // Contains
-                Rectangle rect{-100,50,100, -50};
-                rtree.contains(rect);
+                for (const auto& rect : params) {
+                    if (rect.size() == 4) {
+                        Rectangle r{rect[0], rect[1], rect[2], rect[3]};
+                        rtree.contains(r);
+                    } else {
+                        std::cerr << "Invalid rectangle for Contains query.\n";
+                    }
+                }
                 break;
             }
             case 2: { // Intersects
-                auto rect = Rectangle{-100,50,100, -50};
-                rtree.intersects(rect);
+                for (const auto& rect : params) {
+                    if (rect.size() == 4) {
+                        Rectangle r{rect[0], rect[1], rect[2], rect[3]};
+                        rtree.intersects(r);
+                    } else {
+                        std::cerr << "Invalid rectangle for Intersects query.\n";
+                    }
+                }
                 break;
             }
             default: {
@@ -58,6 +74,54 @@ namespace spatialindex {
             }
         }
     }
+
+    void CreateSpatialIndex::ReadAndExecuteQueries(const std::string& filename) {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open file: " << filename << "\n";
+            return;
+        }
+
+        std::vector<std::vector<float>> params;
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            std::string queryType;
+
+            if (line.find("Nearest") != std::string::npos) {
+                queryType = "Nearest";
+            } else if (line.find("Contains") != std::string::npos) {
+                queryType = "Contains";
+            } else if (line.find("Intersects") != std::string::npos) {
+                queryType = "Intersects";
+            } else {
+                std::cerr << "Unknown query type in line: " << line << "\n";
+                continue;
+            }
+
+            while (std::getline(file, line) && !line.empty()) {
+                std::istringstream paramStream(line);
+                std::vector<float> paramRow;
+                double value;
+                while (paramStream >> value) {
+                    paramRow.push_back(value);
+                    if (paramStream.peek() == ',') paramStream.ignore();
+                }
+                params.push_back(paramRow);
+            }
+
+            if (queryType == "Nearest") {
+                Query(0, params);
+            } else if (queryType == "Contains") {
+                Query(1, params);
+            } else if (queryType == "Intersects") {
+                Query(2, params);
+            }
+        }
+        file.close();
+    }
+
 
     void CreateSpatialIndex::loadRectanglesFromFile(const std::string& filepath, spatialindex::RTree & rtree) {
         std::ifstream inFile(filepath);

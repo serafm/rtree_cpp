@@ -63,13 +63,15 @@ namespace spatialindex {
     void Node::deleteEntry(int index) {
         int lastIndex = entryCount - 1;
         if (index != lastIndex) {
-            // Swap the entry to delete with the last entry
+            // Swap the entry to delete with the last entry // also same for id
             std::swap(entries[index], entries[lastIndex]);
+            std::swap(ids[index], ids[lastIndex]);
         }
 
-        // Remove the last entry (previously swapped or originally to be deleted)
+        // Remove the last entry and id (previously swapped or originally to be deleted)
         Entry deletedEntry = entries.back();
         entries.pop_back();
+        ids.pop_back();
         entryCount--;
 
         // Check if deleted entry influenced MBR and recalculate if necessary

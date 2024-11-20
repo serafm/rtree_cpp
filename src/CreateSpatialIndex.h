@@ -16,9 +16,11 @@ namespace spatialindex {
         // Function to parse a line of MBR data and return a vector of floats
         static std::vector<float> parseMBRLine(const std::string& line);
 
+        static void Query(int type, const std::vector<std::vector<float>>& params);
+
     public:
         static void Start();
-        static void Query(int type);
+        static void ReadAndExecuteQueries(const std::string& filename);
     };
 }
 

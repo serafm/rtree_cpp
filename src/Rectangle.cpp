@@ -39,7 +39,6 @@ namespace spatialindex {
         return r1MaxX >= r2MinX && r1MinX <= r2MaxX && r1MaxY >= r2MinY && r1MinY <= r2MaxY;
     }
 
-
     bool Rectangle::contains(Rectangle& r) const {
         return maxX >= r.maxX && minX <= r.minX && maxY >= r.maxY && minY <= r.minY;
     }

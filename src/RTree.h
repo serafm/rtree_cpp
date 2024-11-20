@@ -6,6 +6,7 @@
 #include <boost/container/vector.hpp>
 #include <map>
 #include <queue>
+#include <set>
 #include <stack>
 #include <vector>
 
@@ -47,7 +48,7 @@ namespace spatialindex {
         // Calculate and add into a queue the nearest N rectangles to a point
         void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
         int getNextNodeId();
-        bool intersects(Rectangle &r, std::shared_ptr<Node>& n);
+        std::set<int> intersects(Rectangle &r, std::shared_ptr<Node>& n);
         float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, boost::container::vector<int> &nearestIds);
         static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
@@ -58,6 +59,7 @@ namespace spatialindex {
         std::shared_ptr<Node> &getNode(int id);
         int getRootNodeId() const;
         static void printContainedRectangles(const std::vector<int>& ids);
+        void printIntersectedRectangles(const std::set<int>& ids);
 
         public:
 

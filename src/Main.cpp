@@ -3,5 +3,5 @@ using namespace spatialindex;
 
 int main() {
     spatialindex::CreateSpatialIndex::Start();
-    spatialindex::CreateSpatialIndex::Query(0);
+    spatialindex::CreateSpatialIndex::ReadAndExecuteQueries("/home/serafm/dev/rtee_test_data/queries.csv");
 }
