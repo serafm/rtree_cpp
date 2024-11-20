@@ -91,10 +91,13 @@ namespace spatialindex {
 
             if (line.find("Nearest") != std::string::npos) {
                 queryType = "Nearest";
+                params.clear();
             } else if (line.find("Contains") != std::string::npos) {
                 queryType = "Contains";
+                params.clear();
             } else if (line.find("Intersects") != std::string::npos) {
                 queryType = "Intersects";
+                params.clear();
             } else {
                 std::cerr << "Unknown query type in line: " << line << "\n";
                 continue;

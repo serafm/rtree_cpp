@@ -820,6 +820,7 @@ namespace spatialindex {
     }
 
     void RTree::printContainedRectangles(const std::vector<int>& ids) {
+        std::cout << "\nContained rectangles:" << std::endl;
         for (int id : ids) {
             std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
         }
