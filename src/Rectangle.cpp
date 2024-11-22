@@ -52,46 +52,6 @@ namespace spatialindex {
         return r.maxX >= maxX && r.minX <= minX && r.maxY >= maxY && r.minY <= minY;
     }
 
-    float Rectangle::distance(Point& p) const {
-        float distanceSquared = 0;
-
-        // Calculate the distance in the X direction.
-        float temp = minX - p.x;
-
-        // If temp is negative, the point is to the right of minX.
-        // Adjust temp to be the distance from p.x to maxX.
-        if (temp < 0) {
-            temp = p.x - maxX;
-        }
-
-        // If temp is still positive, the point is outside the rectangle in the X direction.
-        // Add the square of the X distance to the total distance squared.
-        if (temp > 0) {
-            distanceSquared += (temp * temp);
-        }
-
-        // Calculate the distance in the Y direction.
-        temp = minY - p.y;
-
-        // If temp is negative, the point is above minY.
-        // Adjust temp to be the distance from p.y to maxY.
-        if (temp < 0) {
-            temp = p.y - maxY;
-        }
-
-        // If temp is still positive, the point is outside the rectangle in the Y direction.
-        // Add the square of the Y distance to the total distance squared.
-        if (temp > 0) {
-            distanceSquared += (temp * temp);
-        }
-
-        return std::sqrt(distanceSquared);
-    }
-
-    /*float Rectangle::distance(float minX, float minY, float maxX, float maxY, float pX, float pY) {
-        return std::sqrt(distanceSq(minX, minY, maxX, maxY, pX, pY));
-    }*/
-
     float Rectangle::distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY) {
         float distanceX = 0;
         float distanceY = 0;
@@ -109,27 +69,6 @@ namespace spatialindex {
         }
 
         return std::sqrt(distanceX * distanceX + distanceY * distanceY);
-    }
-
-    /*float Rectangle::distance(Rectangle r) const {
-        float distanceSquared = 0;
-        float greatestMin = std::max(minX, r.minX);
-        float leastMax = std::min(maxX, r.maxX);
-        if (greatestMin > leastMax) {
-            distanceSquared += (greatestMin - leastMax) * (greatestMin - leastMax);
-        }
-        greatestMin = std::max(minY, r.minY);
-        leastMax = std::min(maxY, r.maxY);
-        if (greatestMin > leastMax) {
-            distanceSquared += (greatestMin - leastMax) * (greatestMin - leastMax);
-        }
-        return std::sqrt(distanceSquared);
-    }*/
-
-    float Rectangle::enlargement(Rectangle& r) {
-        float enlargedArea = ( std::max(maxX, r.maxX) - std::min(minX, r.minX) ) *
-                             ( std::max(maxY, r.maxY) - std::min(minY, r.minY) );
-        return enlargedArea - area();
     }
 
     float Rectangle::enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY, float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
@@ -151,10 +90,6 @@ namespace spatialindex {
         }
 
         return r1r2UnionArea - r1Area;
-    }
-
-    float Rectangle::area() const {
-        return (maxX - minX) * (maxY - minY);
     }
 
     float Rectangle::area(float minX, float minY, float maxX, float maxY) {

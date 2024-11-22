@@ -13,7 +13,7 @@ namespace spatialindex {
 
     spatialindex::RTree rtree;
 
-    void CreateSpatialIndex::Start() {
+    void CreateSpatialIndex::BuildTree() {
         const std::string filepath = "/home/serafm/dev/rtee_test_data/T3_COUNTY_continental_mbr_no_points.csv";
         std::cout << "----- RTree Spatial Index -----" << std::endl;
 
@@ -75,7 +75,7 @@ namespace spatialindex {
         }
     }
 
-    void CreateSpatialIndex::ReadAndExecuteQueries(const std::string& filename) {
+    void CreateSpatialIndex::ReadAndExecuteQueries(const std::string& filename, int type) {
         std::ifstream file(filename);
         if (!file.is_open()) {
             std::cerr << "Failed to open file: " << filename << "\n";
@@ -85,44 +85,20 @@ namespace spatialindex {
         std::vector<std::vector<float>> params;
 
         std::string line;
-        while (std::getline(file, line)) {
-            std::istringstream iss(line);
-            std::string queryType;
 
-            if (line.find("Nearest") != std::string::npos) {
-                queryType = "Nearest";
-                params.clear();
-            } else if (line.find("Contains") != std::string::npos) {
-                queryType = "Contains";
-                params.clear();
-            } else if (line.find("Intersects") != std::string::npos) {
-                queryType = "Intersects";
-                params.clear();
-            } else {
-                std::cerr << "Unknown query type in line: " << line << "\n";
-                continue;
+        while (std::getline(file, line) && !line.empty()) {
+            std::istringstream paramStream(line);
+            std::vector<float> paramRow;
+            double value;
+            while (paramStream >> value) {
+                paramRow.push_back(value);
+                if (paramStream.peek() == ',') paramStream.ignore();
             }
-
-            while (std::getline(file, line) && !line.empty()) {
-                std::istringstream paramStream(line);
-                std::vector<float> paramRow;
-                double value;
-                while (paramStream >> value) {
-                    paramRow.push_back(value);
-                    if (paramStream.peek() == ',') paramStream.ignore();
-                }
-                params.push_back(paramRow);
-            }
-
-            if (queryType == "Nearest") {
-                Query(0, params);
-            } else if (queryType == "Contains") {
-                Query(1, params);
-            } else if (queryType == "Intersects") {
-                Query(2, params);
-            }
+            params.push_back(paramRow);
         }
         file.close();
+
+        Query(type, params);
     }
 
 

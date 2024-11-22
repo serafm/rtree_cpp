@@ -487,20 +487,6 @@ namespace spatialindex {
         return m_size;
     }
 
-    Rectangle RTree::getBounds() {
-        Rectangle bounds;
-
-        auto n = getNode(getRootNodeId());
-        if (n != nullptr && n->entryCount > 0) {
-            bounds = Rectangle();
-            bounds.minX = n->mbrMinX;
-            bounds.minY = n->mbrMinY;
-            bounds.maxX = n->mbrMaxX;
-            bounds.maxY = n->mbrMaxY;
-        }
-        return bounds;
-    }
-
     int RTree::numNodes() const {
         return m_nodeMap.size();
     }

@@ -39,26 +39,60 @@ namespace spatialindex {
         std::stack<int> m_deletedNodeIds;
         std::priority_queue<std::pair<float, int>> m_distanceQueue;
 
+        // Adds a new rectangle to the R-tree
         void add(float minX, float minY, float maxX, float maxY, int id, int level);
+
+        // Adjusts the tree after an insertion or a split
         std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
+
+        // Condenses the tree after a deletion
         void condenseTree(const std::shared_ptr<Node> &l);
+
+        // Selects the most appropriate leaf node for inserting a new rectangle
         std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
+
+        // Calculates and updates the Minimum Bounding Rectangle (MBR) of a node n based on the MBRs of its child nodes or entries
         static Rectangle& calculateMBR(Node &n);
 
-        // Calculate and add into a queue the nearest N rectangles to a point
+        // Builds a priority queue containing the nearest N rectangles to a given point p
         void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
+
+        // Generates and returns an id for a new node in the tree
         int getNextNodeId();
+
+        // Finds all rectangles in the subtree rooted at node n that intersect with a given rectangle r
         std::set<int> intersects(Rectangle &r, std::shared_ptr<Node>& n);
+
+        // Recursively searches for the nearest rectangle to a point p within the subtree rooted at node n
         float nearest(Point &p, std::shared_ptr<Node> &n, float furthestDistanceSq, boost::container::vector<int> &nearestIds);
+
+        // Selects two initial entries (seeds) to start the node splitting process when a node overflows
         static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
+
+        // During node splitting, this function selects the next entry to assign to one of the two groups (original node n or new node newNode).
+        // It chooses the entry that causes the greatest difference in area enlargement between the two groups
         int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
+
+        // Splits a full node n into two nodes after inserting a new rectangle defined by the provided coordinates and newId.
+        // It redistributes the entries between the original node and a new node, and returns the new node created
         std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
+
+        // Prints the contents of a priority queue containing pairs of distances and rectangle IDs.
         static void printSortedQueue(std::priority_queue<std::pair<float, int>>& queue);
-        Rectangle getBounds();
+
+        // Deletes a rectangle identified by id and defined by r from the tree
         bool del(Rectangle &r, int id);
+
+        // Retrieves a reference to the node with the specified id
         std::shared_ptr<Node> &getNode(int id);
+
+        // Returns the ID of the root node of the tree
         int getRootNodeId() const;
+
+        // Prints the rectangles ids that were contained by a range query
         static void printContainedRectangles(const std::vector<int>& ids);
+
+        // Prints the rectangles ids that were intersecting with a given query
         void printIntersectedRectangles(const std::set<int>& ids);
 
         public:

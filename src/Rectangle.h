@@ -92,26 +92,6 @@ namespace spatialindex {
         bool containedBy(Rectangle& r) const;
 
         /**
-            * Return the distance between this rectangle and the passed point.
-            * If the rectangle contains the point, the distance is zero.
-            *
-            * @param p Point to find the distance to
-            *
-            * @return distance beween this rectangle and the passed point.
-        */
-        float distance(Point& p) const;
-
-        /**
-            * Return the distance between this rectangle and the passed rectangle.
-            * If the rectangles overlap, the distance is zero.
-            *
-            * @param r Rectangle to find the distance to
-            *
-            * @return distance between this rectangle and the passed rectangle
-        */
-        //float distance(Rectangle r) const;
-
-        /**
             * Return the distance between a rectangle and a point.
             * If the rectangle contains the point, the distance is zero.
             *
@@ -122,11 +102,8 @@ namespace spatialindex {
             * @param pX X coordinate of point
             * @param pY Y coordinate of point
             *
-            * @return distance beween this rectangle and the passed point.
+            * @return distance between this rectangle and the passed point.
         */
-        static float distance(float minX, float minY, float maxX, float maxY, float pX, float pY);
-
-
         static float distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY);
 
         /**
@@ -139,7 +116,7 @@ namespace spatialindex {
             *
             * @return enlargement
         */
-        float enlargement(Rectangle& r);
+        float enlargement(Rectangle& r) const;
 
         /**
             * Calculate the area by which a rectangle would be enlarged if
@@ -233,7 +210,7 @@ namespace spatialindex {
             * Return a string representation of this rectangle, in the form:
             * (1.2, 3.4), (5.6, 7.8)
             *
-            * @return String String representation of this rectangle.
+            * @return String representation of this rectangle.
         */
         std::string toString();
 
@@ -244,8 +221,6 @@ namespace spatialindex {
         float aspectRatio() const;
 
         Point centre() const;
-
-        static void adjustMBR(Rectangle& rect, float childMinX, float childMinY, float childMaxX, float childMaxY);
 
     };
 }
