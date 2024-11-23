@@ -26,22 +26,22 @@ namespace spatialindex {
         /**
         * Copy from another point into this one
         */
-        void set(Point& other);
+        void set(const Point & other);
 
         /**
         * Print as a string in format "(x, y)"
         */
-        std::string toString();
+        std::string toString() const;
 
         /**
         * @return X coordinate rounded to an int
         */
-        int xInt();
+        int xInt() const;
 
         /**
         * @return Y coordinate rounded to an int
         */
-        int yInt();
+        int yInt() const;
     };
 }
 #endif // POINT_H

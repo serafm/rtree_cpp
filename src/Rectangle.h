@@ -37,7 +37,7 @@ namespace spatialindex {
         bool isEmpty() const;
 
         /**
-            * Determine whether an edge of this rectangle overlies the equivalent
+            * Determine whether the edge of this rectangle overlies the equivalent
             * edge of the passed rectangle
         */
         bool edgeOverlaps(Rectangle& r) const;
@@ -52,7 +52,7 @@ namespace spatialindex {
         bool intersects(Rectangle& r) const;
 
         /**
-        * Determine whether or not two rectangles intersect
+        * Determine whether two rectangles intersect
         *
         * @param r1MinX minimum X coordinate of rectangle 1
         * @param r1MinY minimum Y coordinate of rectangle 1
@@ -110,8 +110,8 @@ namespace spatialindex {
             * Calculate the area by which this rectangle would be enlarged if
             * added to the passed rectangle. Neither rectangle is altered.
             *
-            * @param r Rectangle to union with this rectangle, in order to
-            *          compute the difference in area of the union and the
+            * @param r Rectangle to union with this rectangle, to
+            *          compute the difference in the area of the union and the
             *          original rectangle
             *
             * @return enlargement
@@ -120,7 +120,7 @@ namespace spatialindex {
 
         /**
             * Calculate the area by which a rectangle would be enlarged if
-            * added to the passed rectangle..
+            * added to the passed rectangle.
             *
             * @param r1MinX minimum X coordinate of rectangle 1
             * @param r1MinY minimum Y coordinate of rectangle 1
@@ -199,20 +199,12 @@ namespace spatialindex {
         /**
             * Determine whether this rectangle is the same as another object
             *
-            * Note that two rectangles can be equal but not the same object,
+            * Note that two rectangles can be equal but different object
             * if they both have the same bounds.
             *
             * @param o The object to compare with this rectangle.
         */
-        bool sameObject(Rectangle& r);
-
-        /**
-            * Return a string representation of this rectangle, in the form:
-            * (1.2, 3.4), (5.6, 7.8)
-            *
-            * @return String representation of this rectangle.
-        */
-        std::string toString();
+        static bool sameObject(Rectangle& r);
 
         float width() const;
 

@@ -25,11 +25,6 @@ namespace spatialindex {
     void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
         Entry entry{minX, minY, maxX, maxY, id};
 
-        /*if (isEmptyOrIncomplete(entry)) {
-            std::cerr << "ERROR: Entry is empty or incomplete!" << std::endl;
-            std::exit(1);
-        }*/
-
         if (entries.size() < RTree::DEFAULT_MAX_NODE_ENTRIES) {
             entries.push_back(entry);
             ids.push_back(id);
@@ -116,7 +111,7 @@ namespace spatialindex {
         return entryCount;
     }
 
-    void Node::getNodeEntries() {
+    void Node::getNodeEntries() const {
         for (int i = 0; i < entryCount; i++) {
             std::cout << "Entry " << i << ": (" << entries[i].minX << ", " << entries[i].minY << ") - ("
                       << entries[i].maxX << ", " << entries[i].maxY << ") with ID: " << ids[i] << std::endl;
@@ -137,13 +132,6 @@ namespace spatialindex {
 
     bool Node::isEmpty() const {
         return level == 0;
-    }
-
-    bool Node::isEmptyOrIncomplete(Entry& entry) {
-        if (entry.id == 0 || entry.minX == 0 || entry.maxX == 0 || entry.minY == 0 || entry.maxY == 0) {
-            return true;
-        }
-        return false;
     }
 
 }

@@ -19,7 +19,7 @@ namespace spatialindex {
         static void Query(int type, const std::vector<std::vector<float>>& params);
 
     public:
-        static void BuildTree();
+        static void BuildTree(const std::string& filepath);
         static void ReadAndExecuteQueries(const std::string& filename, int type);
     };
 }

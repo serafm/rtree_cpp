@@ -141,10 +141,6 @@ namespace spatialindex {
         return true;
     }
 
-    std::string Rectangle::toString() {
-        return "";
-    }
-
     float Rectangle::width() const {
         return maxX - minX;
     }

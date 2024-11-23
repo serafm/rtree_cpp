@@ -5,6 +5,7 @@
 
 #include <boost/container/vector.hpp>
 #include <map>
+#include <memory>
 #include <queue>
 #include <set>
 #include <stack>
@@ -52,7 +53,7 @@ namespace spatialindex {
         static Rectangle& calculateMBR(Node &n);
 
         // Builds a priority queue containing the nearest N rectangles to a given point p
-        void createNearestNDistanceQueue(Point& p, int count, float furthestDistance);
+        void createNearestNDistanceQueue(const Point & p, int count, float furthestDistance);
 
         // Generates and returns an id for a new node in the tree
         int getNextNodeId();
@@ -110,7 +111,8 @@ namespace spatialindex {
         void intersects(Rectangle& r);
 
         // Retrieve the nearest rectangle to a point
-        void nearest(Point& p, float furthestDistance);
+        void nearest(Point &p, float furthestDistance);
+        static void printNearest(Point& p, boost::container::vector<int>& nearestIds, float distance);
 
         // Retrieve the N nearest rectangles to a point without sorting the results
         void nearestNUnsorted(Point& p, int count, float furthestDistance);

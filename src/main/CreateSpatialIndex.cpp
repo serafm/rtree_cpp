@@ -11,10 +11,9 @@
 
 namespace spatialindex {
 
-    spatialindex::RTree rtree;
+    RTree rtree;
 
-    void CreateSpatialIndex::BuildTree() {
-        const std::string filepath = "/home/serafm/dev/rtee_test_data/T3_COUNTY_continental_mbr_no_points.csv";
+    void CreateSpatialIndex::BuildTree(const std::string& filepath) {
         std::cout << "----- RTree Spatial Index -----" << std::endl;
 
         const std::ifstream inFile(filepath);
@@ -83,13 +82,12 @@ namespace spatialindex {
         }
 
         std::vector<std::vector<float>> params;
-
         std::string line;
 
         while (std::getline(file, line) && !line.empty()) {
             std::istringstream paramStream(line);
             std::vector<float> paramRow;
-            double value;
+            float value;
             while (paramStream >> value) {
                 paramRow.push_back(value);
                 if (paramStream.peek() == ',') paramStream.ignore();
@@ -100,7 +98,6 @@ namespace spatialindex {
 
         Query(type, params);
     }
-
 
     void CreateSpatialIndex::loadRectanglesFromFile(const std::string& filepath, spatialindex::RTree & rtree) {
         std::ifstream inFile(filepath);

@@ -3,10 +3,7 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include <cstdint>
-#include <deque>
 #include <limits>
-#include <memory>
 #include <vector>
 
 namespace spatialindex {
@@ -44,7 +41,7 @@ namespace spatialindex {
         int level = 0;
 
         /**
-         * Number of entries in node
+         * Number of entries in the node
          */
         int entryCount = 0;
 
@@ -61,6 +58,7 @@ namespace spatialindex {
 
         /**
          * Node constructor. Creates a new node with the given properties.
+         * @param id Node id
          * @param level Level of the node in the tree.
          */
         Node(int id, int level);
@@ -83,6 +81,7 @@ namespace spatialindex {
          * @param minY Min Y value
          * @param maxX Max X value
          * @param maxY Max Y value
+         * @param id Entry id
          * @return
          */
         int findEntry(float minX, float minY, float maxX, float maxY, int id);
@@ -109,21 +108,13 @@ namespace spatialindex {
 
         /**
          * Reorganize the tree.
-         * @param rtree
          */
         void reorganize(int maxNodeEntries);
 
         /**
          * Get all node entries.
          */
-        void getNodeEntries();
-
-        /**
-         * Check if an entry is empty or incomplete.
-         * @param entry Entry struct
-         * @return boolean value
-         */
-        static bool isEmptyOrIncomplete(Entry& entry);
+        void getNodeEntries() const;
 
         /**
          * Get the number of entries in the node.

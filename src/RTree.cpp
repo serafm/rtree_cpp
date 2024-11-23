@@ -493,18 +493,16 @@ namespace spatialindex {
     void RTree::nearest(Point& p, float furthestDistance) {
         auto rootNode = getNode(m_rootNodeId);
 
-        float furthestDistanceSq = furthestDistance * furthestDistance;
+        const float furthestDistanceSq = furthestDistance * furthestDistance;
         auto nearestIds = boost::container::vector<int>();
 
-        auto dist = nearest(p, rootNode, furthestDistanceSq, nearestIds);
+        const auto dist = nearest(p, rootNode, furthestDistanceSq, nearestIds);
 
-        std::cout << "\nNearest rectangle to point (" << p.x << "," << p.y << "): " << std::endl;
-        std::cout << "ID: " << nearestIds.at(0) << " Distance: " << dist << std::endl;
-
+        printNearest(p, nearestIds, dist);
         nearestIds.clear();
     }
 
-    void RTree::createNearestNDistanceQueue(Point& p, int count, float furthestDistance) {
+    void RTree::createNearestNDistanceQueue(const Point & p, const int count, const float furthestDistance) {
         // Return immediately if given an invalid "count" parameter
         if (count <= 0) {
             return;
@@ -578,28 +576,6 @@ namespace spatialindex {
             m_parentsEntry.pop();
         }
     }
-
-    void RTree::printSortedQueue(std::priority_queue<std::pair<float, int>>& queue) {
-        std::vector<std::pair<float, int>> elements;
-
-        // Extract all elements from the queue
-        while (!queue.empty()) {
-            elements.push_back(queue.top());
-            queue.pop();
-        }
-
-        // Sort in ascending order (the smallest distance first)
-        std::sort(elements.begin(), elements.end(), [](const auto& a, const auto& b) {
-            return a.first < b.first;
-        });
-
-        // Print sorted elements
-        std::cout << "\nNearest " << elements.size() << " rectangles (ascending order):" << std::endl;
-        for (const auto& [distance, id] : elements) {
-            std::cout << "ID: " << id << " Distance: " << distance << std::endl;
-        }
-    }
-
 
     void RTree::nearestNUnsorted(Point& p, int count, float furthestDistance) {
         // This implementation is designed to give good performance
@@ -680,6 +656,32 @@ namespace spatialindex {
             m_parentsEntry.pop();
         }
         printContainedRectangles(m_ids);
+    }
+
+    void RTree::printNearest(Point& p, boost::container::vector<int>& nearestIds, float distance) {
+        std::cout << "\nNearest rectangle to point " + p.toString() << std::endl;
+        std::cout << "ID: " << nearestIds.at(0) << " Distance: " << distance << std::endl;
+    }
+
+    void RTree::printSortedQueue(std::priority_queue<std::pair<float, int>>& queue) {
+        std::vector<std::pair<float, int>> elements;
+
+        // Extract all elements from the queue
+        while (!queue.empty()) {
+            elements.push_back(queue.top());
+            queue.pop();
+        }
+
+        // Sort in ascending order (the smallest distance first)
+        std::sort(elements.begin(), elements.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first;
+        });
+
+        // Print sorted elements
+        std::cout << "\nNearest " << elements.size() << " rectangles (ascending order):" << std::endl;
+        for (const auto& [distance, id] : elements) {
+            std::cout << "ID: " << id << " Distance: " << distance << std::endl;
+        }
     }
 
     void RTree::printContainedRectangles(const std::vector<int>& ids) {
