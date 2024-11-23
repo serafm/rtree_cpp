@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include "../CreateSpatialIndex.h"
 #include "../Node.h"
 
 using namespace spatialindex;

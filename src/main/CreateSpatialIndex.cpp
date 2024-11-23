@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "RTree.h"
+#include "../RTree.h"
 
 namespace spatialindex {
 

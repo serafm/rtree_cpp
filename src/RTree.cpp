@@ -35,7 +35,7 @@ namespace spatialindex {
         const auto& node = chooseNode(minX, minY, maxX, maxY, level);
         std::shared_ptr<Node> newLeaf;
 
-        // Check if node has space for new entry
+        // Check if the node has space for new entry
         if (node->entryCount < m_maxNodeEntries)
         {
             node->addEntry(minX, minY, maxX, maxY, id);
@@ -332,64 +332,6 @@ namespace spatialindex {
         return next;
     }
 
-    void RTree::condenseTree(const std::shared_ptr<Node> &l) {
-        // CT1 [Initialize] Set n=l. Set the list of eliminated
-        // nodes to be empty.
-        auto n = l;
-        int parentEntry = 0;
-
-        std::stack<int> eliminatedNodeIds;
-
-        // CT2 [Find parent entry] If N is the root, go to CT6. Otherwise,
-        // let P be the parent of N, and let En be N's entry in P
-        while (n->level != m_treeHeight) {
-            const std::shared_ptr<Node> parent = getNode(m_parents.top());
-            m_parents.pop();
-            parentEntry = m_parentsEntry.top();
-            m_parentsEntry.pop();
-
-            // CT3 [Eliminate under-full node] If N has too few entries,
-            // delete En from P and add N to the list of eliminated nodes
-            if (n->entryCount < m_minNodeEntries) {
-                parent->deleteEntry(parentEntry);
-                eliminatedNodeIds.push(n->nodeId);
-            } else {
-                // CT4 [Adjust covering rectangle] If N has not been eliminated,
-                // adjust EnI to tightly contain all entries in N
-                if (n->mbrMinX != parent->entries[parentEntry].minX ||
-                    n->mbrMinY != parent->entries[parentEntry].minY ||
-                    n->mbrMaxX != parent->entries[parentEntry].maxX ||
-                    n->mbrMaxY != parent->entries[parentEntry].maxY) {
-
-                    // Use Rectangle class for calculations for clarity and potential optimizations
-                    parent->entries[parentEntry].minX = n->mbrMinX;
-                    parent->entries[parentEntry].minY = n->mbrMinY;
-                    parent->entries[parentEntry].maxX = n->mbrMaxX;
-                    parent->entries[parentEntry].maxY = n->mbrMaxY;
-                    parent->recalculateMBRIfInfluencedBy(parent->entries[parentEntry].minX, parent->entries[parentEntry].minY, parent->entries[parentEntry].maxX, parent->entries[parentEntry].maxY);
-                }
-            }
-            // CT5 [Move up one level in tree] Set N=P and repeat from CT2
-            n = parent;
-        }
-
-        // CT6 [Reinsert orphaned entries] Reinsert all entries of nodes in set Q.
-        // Entries from eliminated leaf nodes are reinserted in tree leaves as in
-        // Insert(), but entries from higher level nodes must be placed higher in
-        // the tree, so that leaves of their dependent subtrees will be on the same
-        // level as leaves of the main tree
-        while (!eliminatedNodeIds.empty()) {
-            const auto e = getNode(eliminatedNodeIds.top());
-            eliminatedNodeIds.pop();
-            for (int j = 0; j < e->entryCount; j++) {
-                add(e->entries[j].minX, e->entries[j].minY, e->entries[j].maxX, e->entries[j].maxY, e->ids[j], e->level);
-                e->ids[j] = 0;
-            }
-            e->entryCount = 0;
-            m_deletedNodeIds.push(e->nodeId);
-        }
-    }
-
     std::shared_ptr<Node> RTree::chooseNode(float minX, float minY, float maxX, float maxY, int level) {
         auto n = getNode(m_rootNodeId);
         if (!n) {
@@ -472,7 +414,7 @@ namespace spatialindex {
                 }
             }
 
-            // AT5 [Move up to next level] Set N = P and set NN = PP if a split
+            // AT5 [Move up to the next level] Set N = P and set NN = PP if a split
             // occurred. Repeat from AT2
             n = std::move(parent);
             nn = std::move(newNode);
@@ -496,7 +438,7 @@ namespace spatialindex {
         // TODO: Fix calculation its not accurate.
         for (int i = 0; i < n->entryCount; i++) {
             float tempDistanceSq = Rectangle::distanceSq(n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY, p.x, p.y);
-            if (n->isLeaf()) { // for leaves, the distance is an actual nearest distance
+            if (n->isLeaf()) { // for leaves, the distance is the actual nearest distance
                 if (tempDistanceSq < furthestDistanceSq) {
                     furthestDistanceSq = tempDistanceSq;
                     nearestIds.clear();
@@ -546,71 +488,6 @@ namespace spatialindex {
         }
 
         return mbr;
-    }
-
-     bool RTree::del(Rectangle& r, int id) {
-        m_parents = std::stack<int>();
-        m_parents.push(m_rootNodeId);
-
-        m_parentsEntry = std::stack<int>();
-        m_parentsEntry.push(-1);
-        std::shared_ptr<Node> n;
-        int foundIndex = -1;
-
-        while (foundIndex == -1 && !m_parents.empty()) {
-            n = getNode(m_parents.top());
-            int startIndex = m_parentsEntry.top() + 1;
-
-            if (!n->isLeaf()) {
-                std::cout << "Searching node " << n->nodeId << ", from index " << startIndex << std::endl;
-                bool contains = false;
-                for (int i = startIndex; i < n->entryCount; i++) {
-                    if (Rectangle::contains(n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY,
-                     r.minX, r.minY, r.maxX, r.maxY)) {
-                        m_parents.push(n->ids[i]);
-                        m_parentsEntry.pop();
-                        m_parentsEntry.push(i); // this becomes the start index when the child has been searched
-                        m_parentsEntry.push(-1);
-                        contains = true;
-                        break; // ie go to next iteration of while()
-                     }
-                }
-                if (contains) {
-                    continue;
-                }
-            } else {
-                foundIndex = n->findEntry(r.minX, r.minY, r.maxX, r.maxY, id);
-            }
-
-            m_parents.pop();
-            m_parentsEntry.pop();
-        }
-
-        if (foundIndex != -1 && !n->isEmpty() ) {
-            n->deleteEntry(foundIndex);
-            condenseTree(n);
-            m_size--;
-        }
-
-        std::shared_ptr<Node>& root = getNode(m_rootNodeId);
-        while (root->entryCount == 1 && m_treeHeight > 1) {
-            m_deletedNodeIds.push(m_rootNodeId);
-            root->entryCount = 0;
-            m_rootNodeId = root->ids[0];
-            m_treeHeight--;
-            root = getNode(m_rootNodeId);
-        }
-
-        // if the tree is now empty, then set the MBR of the root node back to its original state
-        // (this is only needed when the tree is empty, as this is the only state where an empty node
-        // is not eliminated)
-        if (m_size == 0) {
-            root->mbrMinX = std::numeric_limits<float>::max();
-            root->mbrMinY = std::numeric_limits<float>::max();
-            root->mbrMaxX = -std::numeric_limits<float>::max();
-            root->mbrMaxY = -std::numeric_limits<float>::max();
-        }
-        return (foundIndex != -1);
     }
 
     void RTree::nearest(Point& p, float furthestDistance) {
@@ -696,7 +573,7 @@ namespace spatialindex {
                 }
             }
 
-            // Remove current node from stack after processing
+            // Remove the current node from stack after processing
             m_parents.pop();
             m_parentsEntry.pop();
         }
@@ -711,7 +588,7 @@ namespace spatialindex {
             queue.pop();
         }
 
-        // Sort in ascending order (smallest distance first)
+        // Sort in ascending order (the smallest distance first)
         std::sort(elements.begin(), elements.end(), [](const auto& a, const auto& b) {
             return a.first < b.first;
         });

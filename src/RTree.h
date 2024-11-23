@@ -45,9 +45,6 @@ namespace spatialindex {
         // Adjusts the tree after an insertion or a split
         std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
 
-        // Condenses the tree after a deletion
-        void condenseTree(const std::shared_ptr<Node> &l);
-
         // Selects the most appropriate leaf node for inserting a new rectangle
         std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
 
@@ -80,20 +77,17 @@ namespace spatialindex {
         // Prints the contents of a priority queue containing pairs of distances and rectangle IDs.
         static void printSortedQueue(std::priority_queue<std::pair<float, int>>& queue);
 
-        // Deletes a rectangle identified by id and defined by r from the tree
-        bool del(Rectangle &r, int id);
-
         // Retrieves a reference to the node with the specified id
         std::shared_ptr<Node> &getNode(int id);
 
-        // Returns the ID of the root node of the tree
+        // Returns the root node ID of the tree
         int getRootNodeId() const;
 
-        // Prints the rectangles ids that were contained by a range query
+        // Prints the rectangle ids contained by a range query
         static void printContainedRectangles(const std::vector<int>& ids);
 
-        // Prints the rectangles ids that were intersecting with a given query
-        void printIntersectedRectangles(const std::set<int>& ids);
+        // Prints the rectangle ids intersecting with a given query
+        static void printIntersectedRectangles(const std::set<int>& ids);
 
         public:
 

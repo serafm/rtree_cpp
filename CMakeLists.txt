@@ -11,15 +11,15 @@ add_executable(rtree_cpp_v2
         src/Rectangle.h
         src/RTree.cpp
         src/RTree.h
-        src/CreateSpatialIndex.cpp
+        src/main/CreateSpatialIndex.cpp
         src/Node.cpp
         src/Point.cpp
         src/Point.h
-        src/Main.cpp
-        src/CreateSpatialIndex.h
-        src/Test/RectangleTest.cpp
-        src/Test/RTreeTest.cpp
-        src/Test/NodeTest.cpp)
+        src/main/Main.cpp
+        src/main/CreateSpatialIndex.h
+        src/test/RectangleTest.cpp
+        src/test/RTreeTest.cpp
+        src/test/NodeTest.cpp)
 
 # Enable testing support in CMake
 enable_testing()
@@ -33,9 +33,9 @@ add_executable(rtree_tests
         src/RTree.cpp
         src/Node.cpp
         src/Point.cpp
-        src/Test/RectangleTest.cpp
-        src/Test/RTreeTest.cpp
-        src/Test/NodeTest.cpp)
+        src/test/RectangleTest.cpp
+        src/test/RTreeTest.cpp
+        src/test/NodeTest.cpp)
 
 # Link Google Test to the test executable
 target_link_libraries(rtree_tests GTest::gtest GTest::gtest_main)
