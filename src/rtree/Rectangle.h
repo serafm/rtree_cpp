@@ -4,9 +4,10 @@
 #define RECTANGLE_H
 
 #include <string>
+
 #include "Point.h"
 
-namespace spatialindex {
+namespace rtree {
 
     class Rectangle {
     public:
@@ -213,6 +214,8 @@ namespace spatialindex {
         float aspectRatio() const;
 
         Point centre() const;
+
+        std::string toString() const;
 
     };
 }

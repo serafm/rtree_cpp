@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace spatialindex {
+namespace rtree {
 
     Rectangle::Rectangle() {
         this->minX = std::numeric_limits<float>::max();
@@ -22,16 +22,8 @@ namespace spatialindex {
         return {minX, minY, maxX, maxY};
     }
 
-    bool Rectangle::isEmpty() const {
-        return minX == 0 && maxX == 0 && minY == 0 && maxY == 0;
-    }
-
     bool Rectangle::edgeOverlaps(Rectangle& r) const {
         return minX == r.minX || maxX == r.maxX || minY == r.minY || maxY == r.maxY;
-    }
-
-    bool Rectangle::intersects(Rectangle& r) const {
-        return maxX >= r.minX && minX <= r.maxX && maxY >= r.minY && minY <= r.maxY;
     }
 
     bool Rectangle::intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
@@ -39,37 +31,31 @@ namespace spatialindex {
         return r1MaxX >= r2MinX && r1MinX <= r2MaxX && r1MaxY >= r2MinY && r1MinY <= r2MaxY;
     }
 
-    bool Rectangle::contains(Rectangle& r) const {
-        return maxX >= r.maxX && minX <= r.minX && maxY >= r.maxY && minY <= r.minY;
-    }
-
     bool Rectangle::contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                                  float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
         return r1MaxX >= r2MaxX && r1MinX <= r2MinX && r1MaxY >= r2MaxY && r1MinY <= r2MinY;
     }
 
-    bool Rectangle::containedBy(Rectangle& r) const {
-        return r.maxX >= maxX && r.minX <= minX && r.maxY >= maxY && r.minY <= minY;
-    }
-
     float Rectangle::distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY) {
-        float distanceX = 0;
-        float distanceY = 0;
-
-        if (minX > pX) {
-            distanceX = minX - pX;
-        } else if (pX > maxX) {
-            distanceX = pX - maxX;
+        // Check if the point is inside the rectangle
+        if (pX >= minX && pX <= maxX && pY >= minY && pY <= maxY) {
+            return 0.0f; // Distance is zero if the point is inside the rectangle
         }
 
-        if (minY > pY) {
-            distanceY = minY - pY;
-        } else if (pY > maxY) {
-            distanceY = pY - maxY;
-        }
+        // Calculate distances to each edge
+        float distanceLeft = std::max(0.0f, minX - pX);   // Distance to left edge
+        float distanceRight = std::max(0.0f, pX - maxX);  // Distance to right edge
+        float distanceBottom = std::max(0.0f, minY - pY); // Distance to bottom edge
+        float distanceTop = std::max(0.0f, pY - maxY);    // Distance to top edge
 
+        // Horizontal and vertical distances (min distance to horizontal and vertical edges)
+        float distanceX = std::max(distanceLeft, distanceRight);
+        float distanceY = std::max(distanceBottom, distanceTop);
+
+        // Return the Euclidean distance
         return std::sqrt(distanceX * distanceX + distanceY * distanceY);
     }
+
 
     float Rectangle::enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY, float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
         float r1Area = (r1MaxX - r1MinX) * (r1MaxY - r1MinY);
@@ -163,5 +149,9 @@ namespace spatialindex {
         rect.minY = std::min(rect.minY, childMinY);
         rect.maxX = std::max(rect.maxX, childMaxX);
         rect.maxY = std::max(rect.maxY, childMaxY);
+    }
+
+    std::string Rectangle::toString() const {
+        return "(" + std::to_string(this->minX) + ", " + std::to_string(this->minY) + ", " + std::to_string(this->maxX) + ", " + std::to_string(this->maxY) + ")";
     }
 }

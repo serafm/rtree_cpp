@@ -1,9 +1,10 @@
 #include "Node.h"
 #include <cstddef>
 #include <iostream>
-#include "RTree.h"
 
-namespace spatialindex {
+#include "RTreeBuilder.h"
+
+namespace rtree {
 
     Node::Node(int id, int level)
     : nodeId(id),
@@ -25,7 +26,7 @@ namespace spatialindex {
     void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
         Entry entry{minX, minY, maxX, maxY, id};
 
-        if (entries.size() < RTree::DEFAULT_MAX_NODE_ENTRIES) {
+        if (entries.size() < RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES) {
             entries.push_back(entry);
             ids.push_back(id);
         }

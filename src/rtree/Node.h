@@ -6,9 +6,9 @@
 #include <limits>
 #include <vector>
 
-namespace spatialindex {
+namespace rtree {
 
-    class RTree;
+    class QueryBuilder;
 
     class Node {
 

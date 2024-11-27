@@ -4,7 +4,7 @@
 #define POINT_H
 #include <string>
 
-namespace spatialindex {
+namespace rtree {
 
     class Point {
     public:

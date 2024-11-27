@@ -4,14 +4,16 @@ project(rtree_cpp_v2)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(rtree_cpp_v2
-        src/Node.h
-        src/Rectangle.cpp
-        src/Rectangle.h
-        src/RTree.cpp
-        src/RTree.h
+        src/rtree/Node.h
+        src/rtree/Rectangle.cpp
+        src/rtree/Rectangle.h
+        src/QueryBuilder.cpp
+        src/QueryBuilder.h
         src/main/CreateSpatialIndex.cpp
-        src/Node.cpp
-        src/Point.cpp
-        src/Point.h
+        src/rtree/Node.cpp
+        src/rtree/Point.cpp
+        src/rtree/Point.h
         src/main/Main.cpp
-        src/main/CreateSpatialIndex.h)
+        src/main/CreateSpatialIndex.h
+        src/rtree/RTreeBuilder.cpp
+        src/rtree/RTreeBuilder.h)
