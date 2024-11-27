@@ -58,23 +58,29 @@ namespace rtree {
 
 
     float Rectangle::enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY, float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
+        // Calculate the area of r1
         float r1Area = (r1MaxX - r1MinX) * (r1MaxY - r1MinY);
 
-        if (r1Area == std::numeric_limits<float>::max()) {
-            return 0;
+        if (r1Area <= 0) {
+            // Handle degenerate rectangles
+            return std::numeric_limits<float>::max();
         }
 
+        // Update the bounding box of r1 to include r2
         if (r2MinX < r1MinX) r1MinX = r2MinX;
         if (r2MinY < r1MinY) r1MinY = r2MinY;
         if (r2MaxX > r1MaxX) r1MaxX = r2MaxX;
         if (r2MaxY > r1MaxY) r1MaxY = r2MaxY;
 
+        // Calculate the area of the union of r1 and r2
         float r1r2UnionArea = (r1MaxX - r1MinX) * (r1MaxY - r1MinY);
 
         if (r1r2UnionArea == std::numeric_limits<float>::max()) {
+            // Handle large area overflow
             return std::numeric_limits<float>::max();
         }
 
+        // Return the enlargement of r1 to fit r2
         return r1r2UnionArea - r1Area;
     }
 

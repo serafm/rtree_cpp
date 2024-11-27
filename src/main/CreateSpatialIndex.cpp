@@ -89,7 +89,6 @@ void CreateSpatialIndex::Query(int type, const std::vector<std::vector<float>>& 
             for (const auto& point : params) {
                 if (point.size() == 2) {
                     rtree::Point p{point[0], point[1]};
-                    queryBuilder.GetNearestNeighbors(p, 1);
                     queryBuilder.GetNearestNeighbors(p, 5);
                 } else {
                     std::cerr << "Invalid point for Nearest query.\n";

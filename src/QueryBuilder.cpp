@@ -44,7 +44,6 @@ namespace rtree {
 
             auto n = m_rtreeA.getNode(currentNodeId);
             if (n == nullptr) {
-                // Log or handle the error properly
                 continue;
             }
 
@@ -57,12 +56,14 @@ namespace rtree {
             } else {
                 // Process leaf node entries
                 for (int i = 0; i < n->entryCount; i++) {
-                    float entryDistanceSq = Rectangle::distanceSq(n->entries[i].minX, n->entries[i].minY,
-                                                                  n->entries[i].maxX, n->entries[i].maxY,
+                    auto& entry = n->entries[i];
+                    float entryDistanceSq = Rectangle::distanceSq(entry.minX, entry.minY,
+                                                                  entry.maxX, entry.maxY,
                                                                   p.x, p.y);
                     int entryId = n->ids[i];
 
                     if (entryDistanceSq <= furthestNeighborDistance) {
+
                         // Add to the priority queue
                         m_distanceQueue.emplace(entryDistanceSq, entryId);
 
@@ -87,21 +88,20 @@ namespace rtree {
         m_parents.push(m_rtreeA.m_rootNodeId);
 
         m_parentsEntry = std::stack<int>();
-        m_parentsEntry.push(-1);
+        m_parentsEntry.push(0);  // Start with 0th entry in the root node
 
         // Traverse the R-tree
         while (!m_parents.empty()) {
-            auto nodeId = m_parents.top();
+            int nodeId = m_parents.top();
             m_parents.pop();
 
             auto n = m_rtreeA.getNode(nodeId);
             if (!n) {
-                // Handle invalid node (optional logging)
-                m_parentsEntry.pop();
+                std::cerr << "Error: Invalid node with ID " << nodeId << std::endl;
                 continue;
             }
 
-            int startIndex = m_parentsEntry.top() + 1;
+            int startIndex = m_parentsEntry.top();
             m_parentsEntry.pop();
 
             if (!n->isLeaf()) {
@@ -111,22 +111,26 @@ namespace rtree {
                                                n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY)) {
                         // Push child node for further exploration
                         m_parents.push(n->ids[i]);
-                        m_parentsEntry.push(i); // Update index for the current node
-                        m_parentsEntry.push(-1); // Reset child node start index
-                                               }
+                        m_parentsEntry.push(0);  // Reset start index for child node
+                    }
                 }
             } else {
                 // Process leaf nodes: Check for containment or intersection
-                for (int i = 0; i < n->entryCount; i++) {
-                    if (Rectangle::intersects(range.minX, range.minY, range.maxX, range.maxY,
-                                               n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY)) {
+                for (int i = startIndex; i < n->entryCount; i++) {
+                    bool isContained = Rectangle::contains(range.minX, range.minY, range.maxX, range.maxY,
+                                                           n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY);
+                    bool isIntersected = Rectangle::intersects(range.minX, range.minY, range.maxX, range.maxY,
+                                                               n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY);
+
+                    if (isContained || isIntersected) {
                         // Add entry to results if it intersects or is contained
                         m_ids.push_back(n->ids[i]);
-                                               }
+                    }
                 }
             }
         }
     }
+
 
     void QueryBuilder::intersects(Rectangle& rect) {
 

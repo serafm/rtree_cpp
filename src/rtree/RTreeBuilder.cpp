@@ -139,7 +139,8 @@ namespace rtree {
                 }
             }
 
-            float normalizedSeparation = mbrLenX == 0 ? 1.0f : (tempHighestLow - tempLowestHigh) / mbrLenX;
+            // Ensure no negative separation
+            float normalizedSeparation = mbrLenX == 0 || (tempHighestLow - tempLowestHigh) < 0 ? 1.0f : (tempHighestLow - tempLowestHigh) / mbrLenX;
 
             if (normalizedSeparation >= maxNormalizedSeparation) {
                 highestLowIndex = tempHighestLowIndex;
@@ -168,11 +169,8 @@ namespace rtree {
                 }
             }
 
-            float normalizedSeparation = mbrLenY == 0 ? 1.0f : (tempHighestLow - tempLowestHigh) / mbrLenY;
-
-            if (normalizedSeparation > 1 || normalizedSeparation < -1) {
-                // std::cerr << "Error: Normalized separation is not between -1 and 1" << std::endl;
-            }
+            // Ensure no negative separation
+            float normalizedSeparation = mbrLenY == 0 || (tempHighestLow - tempLowestHigh) < 0 ? 1.0f : (tempHighestLow - tempLowestHigh) / mbrLenY;
 
             if (normalizedSeparation >= maxNormalizedSeparation) {
                 highestLowIndex = tempHighestLowIndex;
@@ -218,8 +216,8 @@ namespace rtree {
             lowestHighIndex = highestLowIndex;
         }
 
-        //m_entryStatus[lowestHighIndex] = ENTRY_STATUS_ASSIGNED;
-        n->entryCount = 1;
+        // Update the entry count properly (do not overwrite it)
+        n->entryCount = n->entryCount - 1;  // Decrease by one after moving an entry to newNode
         n->mbrMinX = n->entries[lowestHighIndex].minX;
         n->mbrMinY = n->entries[lowestHighIndex].minY;
         n->mbrMaxX = n->entries[lowestHighIndex].maxX;
@@ -231,37 +229,34 @@ namespace rtree {
         int next = 0;
         int nextGroup = 0;
 
+        // Ensure there's at least one unassigned entry
+        if (n->entryCount == 0) {
+            std::cerr << "Error: No entries to pick." << std::endl;
+            return -1;
+        }
+
         for (int i = 0; i < n->entryCount; i++) {
             if (m_entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
                 if (n->ids[i] == -1) {
-                    std::cerr << "Error: Node " << n->nodeId << ", entry " << i << " is null" << std::endl;
+                    std::cerr << "Error: Node " << n->nodeId << ", entry " << i << " has invalid ID" << std::endl;
                 }
 
                 float nIncrease = Rectangle::enlargement(
-                    n->mbrMinX,
-                    n->mbrMinY,
-                    n->mbrMaxX,
-                    n->mbrMaxY,
-                    n->entries[i].minX,
-                    n->entries[i].minY,
-                    n->entries[i].maxX,
-                    n->entries[i].maxY);
+                    n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY,
+                    n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY
+                );
 
                 float newNodeIncrease = Rectangle::enlargement(
-                    newNode->mbrMinX,
-                    newNode->mbrMinY,
-                    newNode->mbrMaxX,
-                    newNode->mbrMaxY,
-                    n->entries[i].minX,
-                    n->entries[i].minY,
-                    n->entries[i].maxX,
-                    n->entries[i].maxY);
+                    newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY,
+                    n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY
+                );
 
                 float difference = std::abs(nIncrease - newNodeIncrease);
 
                 if (difference > maxDifference) {
                     next = i;
 
+                    // Adjust group based on enlargement comparison
                     if (nIncrease < newNodeIncrease) {
                         nextGroup = 0;
                     } else if (newNodeIncrease < nIncrease) {
@@ -283,21 +278,14 @@ namespace rtree {
         m_entryStatus[next] = ENTRY_STATUS_ASSIGNED;
 
         if (nextGroup == 0) {
-            if (n->entries[next].minX < n->mbrMinX) {
-                n->mbrMinX = n->entries[next].minX;
-            }
-            if (n->entries[next].minY < n->mbrMinY) {
-                n->mbrMinY = n->entries[next].minY;
-            }
-            if (n->entries[next].maxX > n->mbrMaxX) {
-                n->mbrMaxX = n->entries[next].maxX;
-            }
-            if (n->entries[next].maxY > n->mbrMaxY) {
-                n->mbrMaxY = n->entries[next].maxY;
-            }
+            // Update MBR of the node
+            n->mbrMinX = std::min(n->mbrMinX, n->entries[next].minX);
+            n->mbrMinY = std::min(n->mbrMinY, n->entries[next].minY);
+            n->mbrMaxX = std::max(n->mbrMaxX, n->entries[next].maxX);
+            n->mbrMaxY = std::max(n->mbrMaxY, n->entries[next].maxY);
             n->entryCount++;
         } else {
-            // move to new node.
+            // Move to the new node
             newNode->addEntry(n->entries[next].minX, n->entries[next].minY, n->entries[next].maxX, n->entries[next].maxY, n->ids[next]);
             n->deleteEntry(next);
         }

@@ -57,6 +57,11 @@ namespace rtree {
     }
 
     void Node::deleteEntry(int index) {
+        if (entries.empty()) {
+            std::cerr << "Error: Attempt to delete from an empty node." << std::endl;
+            return;
+        }
+
         int lastIndex = entryCount - 1;
         if (index != lastIndex) {
             // Swap the entry to delete with the last entry // also same for id
@@ -70,7 +75,7 @@ namespace rtree {
         ids.pop_back();
         entryCount--;
 
-        // Check if deleted entry influenced MBR and recalculate if necessary
+        // Recalculate the MBR only if the deleted entry was part of the MBR
         recalculateMBRIfInfluencedBy(deletedEntry.minX, deletedEntry.minY, deletedEntry.maxX, deletedEntry.maxY);
     }
 
@@ -81,9 +86,16 @@ namespace rtree {
     }
 
     void Node::recalculateMBR() {
+        if (entries.empty()) {
+            // Handle empty node case, maybe set MBR to invalid values or a default rectangle
+            mbrMaxX = mbrMaxY = mbrMinX = mbrMinY = 0;
+            return;
+        }
+
         mbrMaxX = mbrMaxY = std::numeric_limits<float>::lowest();
         mbrMinX = mbrMinY = std::numeric_limits<float>::max();
-        for (Entry entry: entries) {
+
+        for (Entry entry : entries) {
             mbrMaxX = std::max(mbrMaxX, entry.maxX);
             mbrMaxY = std::max(mbrMaxY, entry.maxY);
             mbrMinX = std::min(mbrMinX, entry.minX);

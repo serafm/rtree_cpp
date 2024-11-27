@@ -45,7 +45,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
     int getNextNodeId();
 
     // Selects two initial entries (seeds) to start the node splitting process when a node overflows
-    static void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
+    void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
 
     // During node splitting, this function selects the next entry to assign to one of the two groups (original node n or new node newNode).
     // It chooses the entry that causes the greatest difference in area enlargement between the two groups
