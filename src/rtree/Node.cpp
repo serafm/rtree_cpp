@@ -86,14 +86,10 @@ namespace rtree {
     }
 
     void Node::recalculateMBR() {
-        if (entries.empty()) {
-            // Handle empty node case, maybe set MBR to invalid values or a default rectangle
-            mbrMaxX = mbrMaxY = mbrMinX = mbrMinY = 0;
-            return;
-        }
-
-        mbrMaxX = mbrMaxY = std::numeric_limits<float>::lowest();
-        mbrMinX = mbrMinY = std::numeric_limits<float>::max();
+        mbrMinX = entries[0].minX;
+        mbrMinY = entries[0].minY;
+        mbrMaxX = entries[0].maxX;
+        mbrMaxY = entries[0].maxY;
 
         for (Entry entry : entries) {
             mbrMaxX = std::max(mbrMaxX, entry.maxX);

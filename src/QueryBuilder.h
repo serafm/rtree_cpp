@@ -33,10 +33,7 @@ namespace rtree {
         // Find all rectangles in the tree that are contained by the passed rectangle
         void contains(Rectangle& r);
 
-        void intersects(Rectangle& r);
-
-        // Finds all rectangles in the subtree rooted at node n that intersect with a given rectangle r
-        std::set<int> intersects(Rectangle &r, std::shared_ptr<Node>& n);
+        std::map<int, int> intersects(RTreeBuilder& treeA, RTreeBuilder& treeB);
 
         // Prints the Nearest Neighbors.
         void printNearestNeighbors(Point& p, std::priority_queue<std::pair<float, int>>& queue);
@@ -57,6 +54,8 @@ namespace rtree {
 
         // Retrieve the N nearest rectangles to a point with sorted results
         void GetNearestNeighbors(Point& p, int count);
+
+        void GetIntersectedRectangles(Rectangle& range);
 
     };
 }
