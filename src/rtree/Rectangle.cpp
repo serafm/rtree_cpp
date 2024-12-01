@@ -4,12 +4,11 @@
 
 namespace rtree {
 
-    Rectangle::Rectangle() {
-        this->minX = std::numeric_limits<float>::max();
-        this->minY = std::numeric_limits<float>::max();
-        this->maxX = std::numeric_limits<float>::min();
-        this->maxY = std::numeric_limits<float>::min();
-    }
+    Rectangle::Rectangle()
+      : minX(MAXFLOAT),
+        minY(MAXFLOAT),
+        maxX(-MAXFLOAT),
+        maxY(-MAXFLOAT) {}
 
     Rectangle::Rectangle(float x1, float y1, float x2, float y2) {
         this->minX = std::min(x1, x2);
@@ -27,7 +26,7 @@ namespace rtree {
     }
 
     bool Rectangle::intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
-                                float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
+                                 float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
         return r1MaxX >= r2MinX && r1MinX <= r2MaxX && r1MaxY >= r2MinY && r1MinY <= r2MaxY;
     }
 
@@ -146,14 +145,6 @@ namespace rtree {
 
     Point Rectangle::centre() const {
         return {(minX + maxX) / 2, (minY + maxY) / 2};
-    }
-
-    // Adjusts the rectangle to include the area specified by the provided coordinates
-    static void adjustMBR(Rectangle& rect, float childMinX, float childMinY, float childMaxX, float childMaxY) {
-        rect.minX = std::min(rect.minX, childMinX);
-        rect.minY = std::min(rect.minY, childMinY);
-        rect.maxX = std::max(rect.maxX, childMaxX);
-        rect.maxY = std::max(rect.maxY, childMaxY);
     }
 
     std::string Rectangle::toString() const {

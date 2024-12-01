@@ -4,6 +4,7 @@
 #define NODE_H
 
 #include <limits>
+#include <math.h>
 #include <vector>
 
 namespace rtree {
@@ -30,10 +31,10 @@ namespace rtree {
         /**
          * Minimum bounding rectangle (MBR) of the node
          */
-        float mbrMinX = std::numeric_limits<float>::max();
-        float mbrMinY = std::numeric_limits<float>::max();
-        float mbrMaxX = std::numeric_limits<float>::min();
-        float mbrMaxY = std::numeric_limits<float>::min();
+        float mbrMinX = MAXFLOAT;
+        float mbrMinY = MAXFLOAT;
+        float mbrMaxX = -MAXFLOAT;
+        float mbrMaxY = -MAXFLOAT;
 
         /**
          * The level of the node in the tree
@@ -48,7 +49,10 @@ namespace rtree {
         /**
          * Queue of entries
          */
-        std::vector<Entry> entries;
+        std::vector<float> entriesMinX{};
+        std::vector<float> entriesMinY{};
+        std::vector<float> entriesMaxX{};
+        std::vector<float> entriesMaxY{};
 
         /**
          * Vector of:
@@ -145,6 +149,8 @@ namespace rtree {
          * @return
          */
         [[nodiscard]] bool isEmpty() const;
+
+        //void reset(int newLevel);
 
     };
 

@@ -1,17 +1,18 @@
 #include "RTreeBuilder.h"
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 namespace rtree {
 
     RTreeBuilder::RTreeBuilder() :
-        m_initialEntryStatus(m_entryStatus),
+        m_initialEntryStatus(DEFAULT_MAX_NODE_ENTRIES),
+        m_entryStatus(DEFAULT_MAX_NODE_ENTRIES),
         m_maxNodeEntries(DEFAULT_MAX_NODE_ENTRIES),
         m_minNodeEntries(DEFAULT_MIN_NODE_ENTRIES)
     {
-        m_entryStatus.assign(m_maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
+        m_initialEntryStatus.assign(m_maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
         m_root = std::make_shared<Node>(m_rootNodeId, 1);
-        m_nodeMap[m_rootNodeId] = m_root;
+        m_nodeMap.emplace(m_rootNodeId, m_root);
     }
 
     void RTreeBuilder::addEntry(const Rectangle & r)
@@ -22,8 +23,6 @@ namespace rtree {
     }
 
     void RTreeBuilder::add(float minX, float minY, float maxX, float maxY, int id, int level) {
-        m_parents = std::stack<int>();
-        m_parentsEntry = std::stack<int>();
         const auto& node = chooseNode(minX, minY, maxX, maxY, level);
         std::shared_ptr<Node> newLeaf;
 
@@ -44,18 +43,19 @@ namespace rtree {
 
             m_rootNodeId = getNextNodeId();
             m_treeHeight++;
-            const auto root = std::make_shared<Node>(m_rootNodeId, m_treeHeight);
+            auto root = std::make_shared<Node>(m_rootNodeId, m_treeHeight);
 
             root->addEntry(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY, newNode->nodeId);
             root->addEntry(oldRoot->mbrMinX, oldRoot->mbrMinY, oldRoot->mbrMaxX, oldRoot->mbrMaxY, oldRoot->nodeId);
 
-            m_nodeMap[root->getNodeId()] = root;
+            m_nodeMap.emplace(root->getNodeId(), root);
         }
     }
 
     std::shared_ptr<Node> RTreeBuilder::splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId)
     {
         m_entryStatus.assign(m_initialEntryStatus.begin(), m_initialEntryStatus.end());
+
         auto newNode = std::make_shared<Node>(getNextNodeId(), n->level);
         m_nodeMap.emplace(newNode->nodeId, newNode);
 
@@ -66,35 +66,27 @@ namespace rtree {
             std::exit(1);
         }
 
-        while (n->entryCount + newNode->entryCount < m_maxNodeEntries + 1) {
-            if (m_maxNodeEntries + 1 - newNode->entryCount == m_minNodeEntries) {
+        while ((n->entryCount + newNode->entryCount) < m_maxNodeEntries + 1) {
+            if ((m_maxNodeEntries + 1 - newNode->entryCount) == m_minNodeEntries) {
                 for (int i = 0; i < m_maxNodeEntries; i++) {
                     if (m_entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
                         m_entryStatus[i] = ENTRY_STATUS_ASSIGNED;
 
-                        if (n->entries[i].minX < n->mbrMinX) {
-                            n->mbrMinX = n->entries[i].minX;
-                        }
-                        if (n->entries[i].minY < n->mbrMinY) {
-                            n->mbrMinY = n->entries[i].minY;
-                        }
-                        if (n->entries[i].maxX > n->mbrMaxX) {
-                            n->mbrMaxX = n->entries[i].maxX;
-                        }
-                        if (n->entries[i].maxY > n->mbrMaxY) {
-                            n->mbrMaxY = n->entries[i].maxY;
-                        }
+                        if (n->entriesMinX[i] < n->mbrMinX) n->mbrMinX = n->entriesMinX[i];
+                        if (n->entriesMinY[i] < n->mbrMinY) n->mbrMinY = n->entriesMinY[i];
+                        if (n->entriesMaxX[i] > n->mbrMaxX) n->mbrMaxX = n->entriesMaxX[i];
+                        if (n->entriesMaxY[i] > n->mbrMaxY) n->mbrMaxY = n->entriesMaxY[i];
 
                         n->entryCount++;
                     }
                 }
                 break;
             }
-            if (m_maxNodeEntries + 1 - n->entryCount == m_minNodeEntries) {
+            if ((m_maxNodeEntries + 1 - n->entryCount) == m_minNodeEntries) {
                 for (int i = 0; i < m_maxNodeEntries; i++) {
                     if (m_entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
                         m_entryStatus[i] = ENTRY_STATUS_ASSIGNED;
-                        newNode->addEntry(n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY, n->ids[i]);
+                        newNode->addEntry(n->entriesMinX[i], n->entriesMinY[i], n->entriesMaxX[i], n->entriesMaxY[i], n->ids[i]);
                         n->ids[i] = -1;
                     }
                 }
@@ -111,11 +103,10 @@ namespace rtree {
         int highestLowIndex = -1;
         int lowestHighIndex = -1;
 
-        // Update MBR of the node to include the new rectangle
-        n->mbrMinX = std::min(n->mbrMinX, newRectMinX);
-        n->mbrMinY = std::min(n->mbrMinY, newRectMinY);
-        n->mbrMaxX = std::max(n->mbrMaxX, newRectMaxX);
-        n->mbrMaxY = std::max(n->mbrMaxY, newRectMaxY);
+        if (newRectMinX < n->mbrMinX) n->mbrMinX = newRectMinX;
+        if (newRectMinY < n->mbrMinY) n->mbrMinY = newRectMinY;
+        if (newRectMaxX > n->mbrMaxX) n->mbrMaxX = newRectMaxX;
+        if (newRectMaxY > n->mbrMaxY) n->mbrMaxY = newRectMaxY;
 
         float mbrLenX = n->mbrMaxX - n->mbrMinX;
         float mbrLenY = n->mbrMaxY - n->mbrMinY;
@@ -128,12 +119,12 @@ namespace rtree {
         int tempLowestHighIndex = -1;
 
         for (int i = 0; i < n->entryCount; i++) {
-            float tempLow = n->entries[i].minX;
+            float tempLow = n->entriesMinX[i];
             if (tempLow >= tempHighestLow) {
                 tempHighestLow = tempLow;
                 tempHighestLowIndex = i;
             } else {
-                float tempHigh = n->entries[i].maxX;
+                float tempHigh = n->entriesMaxX[i];
                 if (tempHigh <= tempLowestHigh) {
                     tempLowestHigh = tempHigh;
                     tempLowestHighIndex = i;
@@ -158,12 +149,12 @@ namespace rtree {
         tempLowestHighIndex = -1;
 
         for (int i = 0; i < n->entryCount; i++) {
-            float tempLow = n->entries[i].minY;
+            float tempLow = n->entriesMinY[i];
             if (tempLow >= tempHighestLow) {
                 tempHighestLow = tempLow;
                 tempHighestLowIndex = i;
             } else {
-                float tempHigh = n->entries[i].maxY;
+                float tempHigh = n->entriesMaxY[i];
                 if (tempHigh <= tempLowestHigh) {
                     tempLowestHigh = tempHigh;
                     tempLowestHighIndex = i;
@@ -185,14 +176,14 @@ namespace rtree {
             highestLowIndex = -1;
             float tempMinY = newRectMinY;
             lowestHighIndex = 0;
-            float tempMaxX = n->entries[0].maxX;
+            float tempMaxX = n->entriesMaxX[0];
 
             for (int i = 1; i < n->entryCount; i++) {
-                if (n->entries[i].minY < tempMinY) {
-                    tempMinY = n->entries[i].minY;
+                if (n->entriesMinY[i] < tempMinY) {
+                    tempMinY = n->entriesMinY[i];
                     highestLowIndex = i;
-                } else if (n->entries[i].maxX > tempMaxX) {
-                    tempMaxX = n->entries[i].maxX;
+                } else if (n->entriesMaxX[i] > tempMaxX) {
+                    tempMaxX = n->entriesMaxX[i];
                     lowestHighIndex = i;
                 }
             }
@@ -207,19 +198,19 @@ namespace rtree {
                 newId);
         } else {
             newNode->addEntry(
-                n->entries[highestLowIndex].minX,
-                n->entries[highestLowIndex].minY,
-                n->entries[highestLowIndex].maxX,
-                n->entries[highestLowIndex].maxY,
+                n->entriesMinX[highestLowIndex],
+                n->entriesMinY[highestLowIndex],
+                n->entriesMaxX[highestLowIndex],
+                n->entriesMaxY[highestLowIndex],
                 n->ids[highestLowIndex]
                 );
 
             n->ids[highestLowIndex] = -1;
 
-            n->entries[highestLowIndex].minX = newRectMinX;
-            n->entries[highestLowIndex].minY = newRectMinY;
-            n->entries[highestLowIndex].maxX = newRectMaxX;
-            n->entries[highestLowIndex].maxY = newRectMaxY;
+            n->entriesMinX[highestLowIndex] = newRectMinX;
+            n->entriesMinY[highestLowIndex] = newRectMinY;
+            n->entriesMaxX[highestLowIndex] = newRectMaxX;
+            n->entriesMaxY[highestLowIndex] = newRectMaxY;
 
             n->ids[highestLowIndex] = newId;
         }
@@ -230,11 +221,11 @@ namespace rtree {
 
         // Update the entry count properly (do not overwrite it)
         m_entryStatus[lowestHighIndex] = ENTRY_STATUS_ASSIGNED;
-        n->entryCount--;  // Decrease by one after moving an entry to newNode
-        n->mbrMinX = n->entries[lowestHighIndex].minX;
-        n->mbrMinY = n->entries[lowestHighIndex].minY;
-        n->mbrMaxX = n->entries[lowestHighIndex].maxX;
-        n->mbrMaxY = n->entries[lowestHighIndex].maxY;
+        n->entryCount = 1;  // Decrease by one after moving an entry to newNode
+        n->mbrMinX = n->entriesMinX[lowestHighIndex];
+        n->mbrMinY = n->entriesMinY[lowestHighIndex];
+        n->mbrMaxX = n->entriesMaxX[lowestHighIndex];
+        n->mbrMaxY = n->entriesMaxY[lowestHighIndex];
     }
 
     int RTreeBuilder::pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode) {
@@ -254,15 +245,11 @@ namespace rtree {
                     std::cerr << "Error: Node " << n->nodeId << ", entry " << i << " has invalid ID" << std::endl;
                 }
 
-                float nIncrease = Rectangle::enlargement(
-                    n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY,
-                    n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY
-                );
+                float nIncrease = Rectangle::enlargement(n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY,
+                                                 n->entriesMinX[i], n->entriesMinY[i], n->entriesMaxX[i], n->entriesMaxY[i]);
+                float newNodeIncrease = Rectangle::enlargement(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY,
+                                                              n->entriesMinX[i], n->entriesMinY[i], n->entriesMaxX[i], n->entriesMaxY[i]);
 
-                float newNodeIncrease = Rectangle::enlargement(
-                    newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY,
-                    n->entries[i].minX, n->entries[i].minY, n->entries[i].maxX, n->entries[i].maxY
-                );
 
                 float difference = std::abs(nIncrease - newNodeIncrease);
 
@@ -291,15 +278,14 @@ namespace rtree {
         m_entryStatus[next] = ENTRY_STATUS_ASSIGNED;
 
         if (nextGroup == 0) {
-            // Update MBR of the node
-            n->mbrMinX = std::min(n->mbrMinX, n->entries[next].minX);
-            n->mbrMinY = std::min(n->mbrMinY, n->entries[next].minY);
-            n->mbrMaxX = std::max(n->mbrMaxX, n->entries[next].maxX);
-            n->mbrMaxY = std::max(n->mbrMaxY, n->entries[next].maxY);
+            if (n->entriesMinX[next] < n->mbrMinX) n->mbrMinX = n->entriesMinX[next];
+            if (n->entriesMinY[next] < n->mbrMinY) n->mbrMinY = n->entriesMinY[next];
+            if (n->entriesMaxX[next] > n->mbrMaxX) n->mbrMaxX = n->entriesMaxX[next];
+            if (n->entriesMaxY[next] > n->mbrMaxY) n->mbrMaxY = n->entriesMaxY[next];
             n->entryCount++;
         } else {
             // Move to the new node
-            newNode->addEntry(n->entries[next].minX, n->entries[next].minY, n->entries[next].maxX, n->entries[next].maxY, n->ids[next]);
+            newNode->addEntry(n->entriesMinX[next], n->entriesMinY[next], n->entriesMaxX[next], n->entriesMaxY[next], n->ids[next]);
             n->ids[next] = -1;
         }
         return next;
@@ -315,47 +301,48 @@ namespace rtree {
         m_parents = std::stack<int>();
         m_parentsEntry = std::stack<int>();
 
-        while (n && n->level != level) {
-            float leastEnlargement = std::numeric_limits<float>::max();
-            int index = -1;
+        while (true) {
+            if (n == nullptr) {
+                std::cerr << "Could not get root node (" + std::to_string(m_rootNodeId) + ")" << std::endl;
+            }
+
+            if (n->level == level) {
+                return n;
+            }
+
+            float leastEnlargement = Rectangle::enlargement(n->entriesMinX[0], n->entriesMinY[0], n->entriesMaxX[0], n->entriesMaxY[0],
+                                                     minX, minY, maxX, maxY);
+            int index = 0;
 
             for (int i = 0; i < n->entryCount; ++i) {
-                const auto& entry = n->entries[i];
-                float tempEnlargement = Rectangle::enlargement(entry.minX, entry.minY, entry.maxX, entry.maxY, minX, minY, maxX, maxY);
+                float tempMinX = n->entriesMinX[i];
+                float tempMinY = n->entriesMinY[i];
+                float tempMaxX = n->entriesMaxX[i];
+                float tempMaxY = n->entriesMaxY[i];
 
-                if (tempEnlargement < leastEnlargement) {
-                    leastEnlargement = tempEnlargement;
-                    index = i;
-                } else if (tempEnlargement == leastEnlargement) {
-                    if (index == -1) {
-                        std::cerr << "Error finding a suitable child node." << std::endl;
-                        return nullptr;
-                    }
+                float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
+                                                                     minX, minY, maxX, maxY);
 
-                    if (Rectangle::area(entry.minX, entry.minY, entry.maxX, entry.maxY) <
-                        Rectangle::area(n->entries[index].minX, n->entries[index].minY, n->entries[index].maxX, n->entries[index].maxY)) {
+                if ((tempEnlargement < leastEnlargement) ||
+                    ((tempEnlargement == leastEnlargement) &&
+                        (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
+                        Rectangle::area(n->entriesMinX[index], n->entriesMinY[index], n->entriesMaxX[index], n->entriesMaxY[index]))))
+                    {
                         index = i;
-                        }
-                }
+                        leastEnlargement = tempEnlargement;
+                    }
             }
-
-            if (index == -1) {
-                std::cerr << "Error finding a suitable child node." << std::endl;
-                return nullptr;
-            }
-
             m_parents.push(n->nodeId);
             m_parentsEntry.push(index);
             n = getNode(n->ids[index]);
         }
-        return n;
     }
 
     std::shared_ptr<Node> RTreeBuilder::adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn) {
         while (n->level != m_treeHeight) {
             auto parent = getNode(m_parents.top());
             m_parents.pop();
-            const int entry = m_parentsEntry.top();
+            int entry = m_parentsEntry.top();
             m_parentsEntry.pop();
 
             if (parent->ids[entry] != n->nodeId) {
@@ -364,15 +351,15 @@ namespace rtree {
                      n->nodeId << ", actually points to node " << parent->ids[entry] << std::endl;
             }
 
-            if (parent->entries[entry].minX != n->mbrMinX ||
-              parent->entries[entry].minY != n->mbrMinY ||
-              parent->entries[entry].maxX != n->mbrMaxX ||
-              parent->entries[entry].maxY != n->mbrMaxY) {
+            if (parent->entriesMinX[entry] != n->mbrMinX ||
+               parent->entriesMinY[entry] != n->mbrMinY ||
+               parent->entriesMaxX[entry] != n->mbrMaxX ||
+               parent->entriesMaxY[entry] != n->mbrMaxY) {
 
-                parent->entries[entry].minX = n->mbrMinX;
-                parent->entries[entry].minY = n->mbrMinY;
-                parent->entries[entry].maxX = n->mbrMaxX;
-                parent->entries[entry].maxY = n->mbrMaxY;
+                parent->entriesMinX[entry] = n->mbrMinX;
+                parent->entriesMinY[entry] = n->mbrMinY;
+                parent->entriesMaxX[entry] = n->mbrMaxX;
+                parent->entriesMaxY[entry] = n->mbrMaxY;
 
                 parent->recalculateMBR();
             }
@@ -388,12 +375,13 @@ namespace rtree {
 
             n = std::move(parent);
             nn = std::move(newNode);
+
         }
         return nn;
     }
 
     int RTreeBuilder::getNextNodeId() {
-        int nextNodeId;
+        int nextNodeId = 0;
         if (!m_deletedNodeIds.empty()) {
             nextNodeId = m_deletedNodeIds.top();
             m_deletedNodeIds.pop();
@@ -403,8 +391,8 @@ namespace rtree {
         return nextNodeId;
     }
 
-    std::shared_ptr<Node>& RTreeBuilder::getNode(int id) {
-        return m_nodeMap[id];
+    std::shared_ptr<Node> RTreeBuilder::getNode(int id) {
+        return m_nodeMap.at(id);
     }
 
     int RTreeBuilder::treeSize() const {

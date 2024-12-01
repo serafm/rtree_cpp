@@ -2,6 +2,7 @@
 #include <map>
 #include <memory>
 #include <stack>
+#include <unordered_map>
 #include <vector>
 
 #include "Node.h"
@@ -14,20 +15,20 @@ namespace rtree {
 
 class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
 
-    static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
-    static constexpr int ENTRY_STATUS_ASSIGNED = 0;
-    static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
+    static const int DEFAULT_MIN_NODE_ENTRIES = 20;
+    static const int ENTRY_STATUS_ASSIGNED = 0;
+    static const int ENTRY_STATUS_UNASSIGNED = 1;
 
     // List of all nodes in the tree
-    std::map<int, std::shared_ptr<Node>> m_nodeMap;
-    std::vector<int8_t> m_entryStatus;
-    std::vector<int8_t> m_initialEntryStatus;
-    std::stack<int> m_parents;
-    std::stack<int> m_parentsEntry;
+    std::unordered_map<int, std::shared_ptr<Node>> m_nodeMap{};
+    std::vector<int8_t> m_entryStatus{};
+    std::vector<int8_t> m_initialEntryStatus{};
+    std::stack<int> m_parents{};
+    std::stack<int> m_parentsEntry{};
     int m_treeHeight = 1;
-    std::shared_ptr<Node> m_root;
+    std::shared_ptr<Node> m_root{};
     int m_size = 0;
-    std::stack<int> m_deletedNodeIds;
+    std::stack<int> m_deletedNodeIds{};
     int m_maxNodeEntries{};
     int m_minNodeEntries{};
     int m_entryId = 1;
@@ -60,11 +61,11 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
     RTreeBuilder();
 
     // Retrieves a reference to the node with the specified id
-    std::shared_ptr<Node>& getNode(int id);
+    std::shared_ptr<Node> getNode(int id);
 
     void addEntry(const Rectangle & r);
 
-    static constexpr int DEFAULT_MAX_NODE_ENTRIES = 50;
+    static const int DEFAULT_MAX_NODE_ENTRIES = 50;
     int m_rootNodeId = 1;
     int m_highestUsedNodeId = m_rootNodeId;
 

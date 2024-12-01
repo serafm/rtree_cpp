@@ -29,20 +29,15 @@ namespace rtree {
             return;
         }
 
-        auto parents = std::stack<int>();
-        parents.push(m_rtreeA.m_rootNodeId);
-
-        auto parentsEntry = std::stack<int>();
-        parentsEntry.push(-1);
-
-        auto savedValues = std::stack<int>();
-        float savedPriority = 0;
+        // Stack to manage traversal: each element is a pair of node ID and the index of the last child node processed
+        std::stack<std::pair<int, int>> traversalStack;
+        traversalStack.push({m_rtreeA.m_rootNodeId, -1});
 
         float furthestNeighborDistance = MAXFLOAT;
 
-        while (!parents.empty()) {
-            int currentNodeId = parents.top();
-            int startIndex = parentsEntry.top() + 1;
+        while (!traversalStack.empty()) {
+            auto [currentNodeId, startIndex] = traversalStack.top();
+            traversalStack.pop();
 
             auto n = m_rtreeA.getNode(currentNodeId);
             if (n == nullptr) {
@@ -50,121 +45,97 @@ namespace rtree {
             }
 
             if (!n->isLeaf()) {
-                // Traverse child nodes
-                bool near = false;
-                for (int i = startIndex; i < n->entryCount; i++) {
-                    auto distanceSq = Rectangle::distanceSq(n->entries[i].minX, n->entries[i].minY,
-                                 n->entries[i].maxX, n->entries[i].maxY,
-                                 p.x, p.y);
+                // Traverse child nodes starting from startIndex + 1
+                for (int i = startIndex + 1; i < n->entryCount; i++) {
+                    float distanceSq = Rectangle::distanceSq(
+                        n->entriesMinX[i], n->entriesMinY[i],
+                        n->entriesMaxX[i], n->entriesMaxY[i],
+                        p.x, p.y);
 
-                    if (distanceSq <= furthestNeighborDistance) {
-                            parents.push(n->ids[i]);
-                            parentsEntry.pop();
-                            parentsEntry.push(i); // this becomes the start index when the child has been searched
-                            parentsEntry.push(-1);
-                            near = true;
-                            break;
+                    // Consider this child if it could contain closer neighbors
+                    if (m_distanceQueue.size() < count || distanceSq <= furthestNeighborDistance) {
+                        // Push the current node back onto the stack with updated startIndex
+                        traversalStack.push({currentNodeId, i});
+
+                        // Push child node onto the stack with startIndex -1
+                        traversalStack.push({n->ids[i], -1});
+
+                        // Break to process the child node next
+                        break;
                     }
-                }
-                if (near) {
-                    continue;
                 }
             } else {
                 // Process leaf node entries
                 for (int i = 0; i < n->entryCount; i++) {
-                    auto& entry = n->entries[i];
-                    float entryDistanceSq = Rectangle::distanceSq(entry.minX, entry.minY,
-                                                                  entry.maxX, entry.maxY,
-                                                                  p.x, p.y);
-                    int entryId = entry.id;
+                    float entryDistanceSq = Rectangle::distanceSq(
+                        n->entriesMinX[i], n->entriesMinY[i],
+                        n->entriesMaxX[i], n->entriesMaxY[i],
+                        p.x, p.y);
+                    int entryId = n->ids[i];
 
-                    if (entryDistanceSq <= furthestNeighborDistance) {
+                    if (m_distanceQueue.size() < count) {
                         // Add to the priority queue
                         m_distanceQueue.emplace(entryDistanceSq, entryId);
 
-                        while (m_distanceQueue.size() > count) {
-                            int value = m_distanceQueue.top().second;
-                            float distanceSq = m_distanceQueue.top().first;
-                            m_distanceQueue.pop();
-
-                            if (distanceSq == m_distanceQueue.top().first) {
-                                savedValues.push(value);
-                                savedPriority = distanceSq;
-                            } else {
-                                savedValues = std::stack<int>();
-                            }
-                        }
-
-                        if (!savedValues.empty() && savedPriority == m_distanceQueue.top().first) {
-                            for (int svi = 0; svi < savedValues.size(); svi++) {
-                                m_distanceQueue.emplace(savedPriority, savedValues.top());
-                                savedValues.pop();
-                            }
-                            savedValues = std::stack<int>();
-                        }
-
-                        // Update the furthest neighbor distance
-                        if (m_distanceQueue.size() >= count) {
+                        // Update the furthest neighbor distance if we've reached the desired count
+                        if (m_distanceQueue.size() == count) {
                             furthestNeighborDistance = m_distanceQueue.top().first;
                         }
+                    } else if (entryDistanceSq < furthestNeighborDistance) {
+                        // Replace the furthest neighbor with the closer one
+                        m_distanceQueue.pop();
+                        m_distanceQueue.emplace(entryDistanceSq, entryId);
+                        furthestNeighborDistance = m_distanceQueue.top().first;
                     }
                 }
             }
-            parents.pop();
-            parentsEntry.pop();
         }
     }
 
     void QueryBuilder::contains(Rectangle& range) {
-        // Initialize stacks for traversal
-        m_parents = std::stack<int>();
-        m_parents.push(m_rtreeA.m_rootNodeId);
+        // Initialize stack for traversal
+        std::stack<int> nodeStack;
+        nodeStack.push(m_rtreeA.m_rootNodeId);
 
         m_parentsEntry = std::stack<int>();
         m_parentsEntry.push(-1);
 
         // Traverse the R-tree
-        while (!m_parents.empty()) {
-            int nodeId = m_parents.top();
+        while (!nodeStack.empty()) {
+            int nodeId = nodeStack.top();
+            nodeStack.pop();
+            int startIndex = m_parentsEntry.top() + 1;
+
             auto n = m_rtreeA.getNode(nodeId);
 
             if (!n) {
                 std::cerr << "Error: Invalid node with ID " << nodeId << std::endl;
-                m_parents.pop();
-                m_parentsEntry.pop();
                 continue;
             }
 
-            int startIndex = m_parentsEntry.top() + 1;
-
             if (!n->isLeaf()) {
-                bool intersects = false;
                 // Process non-leaf nodes: Check for intersections
                 for (int i = startIndex; i < n->entryCount; i++) {
-                    if (Rectangle::intersects(range.minX, range.minY, range.maxX, range.maxY,
-                                              n->entries[i].minX, n->entries[i].minY,
-                                              n->entries[i].maxX, n->entries[i].maxY)) {
+                    if (Rectangle::intersects(
+                        range.minX, range.minY, range.maxX, range.maxY,
+                        n->entriesMinX[i], n->entriesMinY[i],
+                        n->entriesMaxX[i], n->entriesMaxY[i])) {
+
                         // Push child node for further exploration
-                        m_parents.push(n->ids[i]);
-                        m_parentsEntry.pop();
-                        m_parentsEntry.push(i);    // Update parent's last processed index
-                        m_parentsEntry.push(-1);   // Initialize child's entry index
-                        intersects = true;
-                        break; // Proceed to process the child
-                    }
-                }
-                if (intersects) {
-                    continue;
+                        nodeStack.push(n->ids[i]);
+                        }
                 }
             } else {
                 // Process leaf nodes: Check for containment or intersection
                 for (int i = 0; i < n->entryCount; i++) {
-                    bool isContained = Rectangle::contains(range.minX, range.minY, range.maxX, range.maxY,
-                                                          n->entries[i].minX, n->entries[i].minY,
-                                                          n->entries[i].maxX, n->entries[i].maxY);
-                    bool isIntersected = Rectangle::intersects(range.minX, range.minY, range.maxX, range.maxY,
-                                                             n->entries[i].minX, n->entries[i].minY,
-                                                             n->entries[i].maxX, n->entries[i].maxY);
+                    bool isContained = Rectangle::contains(
+                        range.minX, range.minY, range.maxX, range.maxY,
+                        n->entriesMinX[i], n->entriesMinY[i],
+                        n->entriesMaxX[i], n->entriesMaxY[i]);
+                    bool isIntersected = Rectangle::intersects(
+                        range.minX, range.minY, range.maxX, range.maxY,
+                        n->entriesMinX[i], n->entriesMinY[i],
+                        n->entriesMaxX[i], n->entriesMaxY[i]);
 
                     if (isContained || isIntersected) {
                         // Add entry to results if it intersects or is contained
@@ -172,9 +143,6 @@ namespace rtree {
                     }
                 }
             }
-            // After processing, pop the current node and its entry index
-            m_parents.pop();
-            m_parentsEntry.pop();
         }
     }
 
