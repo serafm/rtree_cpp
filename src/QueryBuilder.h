@@ -23,6 +23,7 @@ namespace rtree {
         RTreeBuilder m_rtreeB;
 
         std::vector<int> m_ids;
+        std::map<int, std::vector<int>> m_joinRectangles;
         std::priority_queue<std::pair<float, int>> m_distanceQueue;
         std::stack<int> m_parents;
         std::stack<int> m_parentsEntry;
@@ -33,7 +34,9 @@ namespace rtree {
         // Find all rectangles in the tree that are contained by the passed rectangle
         void contains(Rectangle& r);
 
-        std::map<int, int> intersects(RTreeBuilder& treeA, RTreeBuilder& treeB);
+        void join(RTreeBuilder& treeA, RTreeBuilder& treeB);
+
+        void collectLeafNodes(const std::shared_ptr<Node>& node, std::vector<std::shared_ptr<Node>>& leafNodes, RTreeBuilder& tree);
 
         // Prints the Nearest Neighbors.
         void printNearestNeighbors(Point& p, std::priority_queue<std::pair<float, int>>& queue);
@@ -42,7 +45,7 @@ namespace rtree {
         void printRangeQuery(Rectangle& range, const std::vector<int>& ids);
 
         // Prints the rectangle ids intersecting with a given query
-        void printIntersectedRectangles(const std::set<int>& ids);
+        void printJoinQuery();
 
         public:
 
@@ -50,12 +53,12 @@ namespace rtree {
         explicit QueryBuilder(RTreeBuilder& rtreeA);
 
         // Retrieve the rectangles contained in the given range
-        void GetRange(Rectangle& range);
+        void Range(Rectangle& range);
 
         // Retrieve the N nearest rectangles to a point with sorted results
-        void GetNearestNeighbors(Point& p, int count);
+        void NearestNeighbors(Point& p, int count);
 
-        void GetIntersectedRectangles(Rectangle& range);
+        void Join();
 
     };
 }

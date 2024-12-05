@@ -13,14 +13,107 @@ namespace rtree {
     QueryBuilder::QueryBuilder(RTreeBuilder& rtreeA) : m_rtreeA(rtreeA), m_rtreeB({}) {}
     QueryBuilder::QueryBuilder(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) : m_rtreeA(rtreeA), m_rtreeB(rtreeB) {}
 
-    void QueryBuilder::GetRange(Rectangle& range) {
+    void QueryBuilder::Range(Rectangle& range) {
         contains(range);
         printRangeQuery(range, m_ids);
     }
 
-    void QueryBuilder::GetNearestNeighbors(Point& p, int count) {
+    void QueryBuilder::NearestNeighbors(Point& p, int count) {
         nearestN(p, count);
         printNearestNeighbors(p, m_distanceQueue);
+    }
+
+    void QueryBuilder::Join() {
+        join(m_rtreeA, m_rtreeB);
+        printJoinQuery();
+    }
+
+    // Helper function to traverse leaf nodes
+    void QueryBuilder::collectLeafNodes(const std::shared_ptr<Node>& node, std::vector<std::shared_ptr<Node>>& leafNodes, RTreeBuilder& rtree) {
+        if (node->isLeaf()) {
+            leafNodes.push_back(node);
+        } else {
+            for (int i = 0; i < node->entryCount; ++i) {
+                int childNodeId = node->ids[i]; // Assuming `ids` stores the IDs of child nodes
+                auto childNode = rtree.getNode(childNodeId); // Fetch child node using RTreeBuilder
+                collectLeafNodes(childNode, leafNodes, rtree);
+            }
+        }
+    }
+
+    // Join function implementation
+    void QueryBuilder::join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) {
+        m_joinRectangles.clear();
+
+        // Start from the root nodes of both R-trees
+        auto rootA = rtreeA.getNode(rtreeA.m_rootNodeId);
+        auto rootB = rtreeB.getNode(rtreeB.m_rootNodeId);
+
+        // Stack of node pairs to be processed
+        std::stack<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> stack;
+        stack.push({rootA, rootB});
+
+        while (!stack.empty()) {
+            auto [nodeA, nodeB] = stack.top();
+            stack.pop();
+
+            // Check if nodes intersect at the MBR level
+            if (!Rectangle::intersects(
+                    nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,
+                    nodeB->mbrMinX, nodeB->mbrMinY, nodeB->mbrMaxX, nodeB->mbrMaxY)) {
+                continue; // No intersection, prune
+            }
+
+            // If both nodes are leaves, do a pairwise check of their entries
+            if (nodeA->isLeaf() && nodeB->isLeaf()) {
+                for (int i = 0; i < nodeA->entryCount; i++) {
+                    for (int j = 0; j < nodeB->entryCount; j++) {
+                        if (Rectangle::intersects(
+                                nodeA->entriesMinX[i], nodeA->entriesMinY[i], nodeA->entriesMaxX[i], nodeA->entriesMaxY[i],
+                                nodeB->entriesMinX[j], nodeB->entriesMinY[j], nodeB->entriesMaxX[j], nodeB->entriesMaxY[j])) {
+                            int idA = nodeA->ids[i];
+                            int idB = nodeB->ids[j];
+                            m_joinRectangles[idA].push_back(idB);
+                        }
+                    }
+                }
+            } else if (!nodeA->isLeaf() && !nodeB->isLeaf()) {
+                // If both are internal nodes, compare their children
+                for (int i = 0; i < nodeA->entryCount; i++) {
+                    auto childA = rtreeA.getNode(nodeA->ids[i]);
+                    for (int j = 0; j < nodeB->entryCount; j++) {
+                        auto childB = rtreeB.getNode(nodeB->ids[j]);
+
+                        // Only push if bounding boxes intersect
+                        if (Rectangle::intersects(
+                                childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
+                                childB->mbrMinX, childB->mbrMinY, childB->mbrMaxX, childB->mbrMaxY)) {
+                            stack.push({childA, childB});
+                        }
+                    }
+                }
+            } else if (!nodeA->isLeaf() && nodeB->isLeaf()) {
+                // nodeA is internal, nodeB is leaf
+                for (int i = 0; i < nodeA->entryCount; i++) {
+                    auto childA = rtreeA.getNode(nodeA->ids[i]);
+                    if (Rectangle::intersects(
+                            childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
+                            nodeB->mbrMinX, nodeB->mbrMinY, nodeB->mbrMaxX, nodeB->mbrMaxY)) {
+                        stack.push({childA, nodeB});
+                    }
+                }
+            } else {
+                // nodeA is leaf, nodeB is internal
+                for (int j = 0; j < nodeB->entryCount; j++) {
+                    auto childB = rtreeB.getNode(nodeB->ids[j]);
+                    if (Rectangle::intersects(
+                            nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,
+                            childB->mbrMinX, childB->mbrMinY, childB->mbrMaxX, childB->mbrMaxY)) {
+                        stack.push({nodeA, childB});
+                    }
+                }
+            }
+        }
     }
 
     void QueryBuilder::nearestN(const Point &p, const int count) {
@@ -146,10 +239,6 @@ namespace rtree {
         }
     }
 
-    std::map<int, int> QueryBuilder::intersects(RTreeBuilder& treeA, RTreeBuilder& treeB) {
-
-    }
-
     void QueryBuilder::printNearestNeighbors(Point& p, std::priority_queue<std::pair<float, int>>& queue) {
         std::vector<std::pair<float, int>> elements;
 
@@ -189,7 +278,17 @@ namespace rtree {
         }
     }
 
-    void QueryBuilder::printIntersectedRectangles(const std::set<int>& ids) {
+    void QueryBuilder::printJoinQuery() {
+        std::cout << "Join Query Results:" << std::endl;
+        for (const auto& pair : m_joinRectangles) {
+            int idA = pair.first;
+            const auto& intersectedIds = pair.second;
 
+            std::cout << "Rectangle ID in RTreeA: " << idA << " intersects with IDs in RTreeB: ";
+            for (int idB : intersectedIds) {
+                std::cout << idB << " ";
+            }
+            std::cout << std::endl;
+        }
     }
 }

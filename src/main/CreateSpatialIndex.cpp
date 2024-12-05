@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -9,24 +10,30 @@
 #include <vector>
 #include "../QueryBuilder.h"
 
+void CreateSpatialIndex::Start(const RTreeParams& params) {
+    m_rtreeA = BuildTree(params.filepathA);
+    m_rtreeB = BuildTree(params.filepathB);
+}
 
-rtree::RTreeBuilder rtreeBuilder;
-
-void CreateSpatialIndex::BuildTree(const std::string& filepath) {
+rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
     std::cout << "----- rtreeBuilder Spatial Index -----" << std::endl;
 
-    const std::ifstream inFile(filepath);
+    rtree::RTreeBuilder rtree;
+
+    std::ifstream inFile(filepath);
     if (!inFile) {
         std::cerr << "Unable to open file " << filepath << std::endl;
         throw std::runtime_error("File cannot be opened");
     }
 
     std::cout << "\nIndexing rectangles to the tree" << std::endl;
-    LoadRectanglesFromFile(filepath, rtreeBuilder);
+    LoadRectanglesFromFile(filepath, rtree);
 
     std::cout << "Created RTree successfully" << std::endl;
-    std::cout << "RTree size: " << rtreeBuilder.treeSize() << std::endl;
-    std::cout << "Number of nodes: " << rtreeBuilder.numNodes() << std::endl;
+    std::cout << "RTree size: " << rtree.treeSize() << std::endl;
+    std::cout << "Number of nodes: " << rtree.numNodes() << std::endl;
+
+    return rtree;
 }
 
 void CreateSpatialIndex::LoadRectanglesFromFile(const std::string& filepath, rtree::RTreeBuilder& rtree) {
@@ -56,14 +63,46 @@ std::vector<float> CreateSpatialIndex::ParseMBRLine(const std::string& line) {
     return mbr;
 }
 
-void CreateSpatialIndex::ReadAndExecuteQueries(const std::string& filename, int type) {
+void CreateSpatialIndex::NearestNeighborsQuery(int n, const std::string& filename) {
+    rtree::QueryBuilder queryBuilder(m_rtreeA);
+    ReadQueryFile(filename);
+    for (const auto& point : m_params) {
+        if (point.size() == 2) {
+            rtree::Point p{point[0], point[1]};
+            queryBuilder.NearestNeighbors(p, n);
+        } else {
+            std::cerr << "Invalid point for Nearest neighbors query.\n";
+        }
+    }
+}
+
+void CreateSpatialIndex::RangeQuery(const std::string& filename) {
+    rtree::QueryBuilder queryBuilder(m_rtreeA);
+    ReadQueryFile(filename);
+    for (const auto& rect : m_params) {
+        if (rect.size() == 4) {
+            rtree::Rectangle range{rect[0], rect[1], rect[2], rect[3]};
+            queryBuilder.Range(range);
+        } else {
+            std::cerr << "Invalid rectangle for Range query.\n";
+        }
+    }
+}
+
+void CreateSpatialIndex::JoinQuery() {
+    rtree::QueryBuilder queryBuilder(m_rtreeA, m_rtreeB);
+    queryBuilder.Join();
+
+}
+
+void CreateSpatialIndex::ReadQueryFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filename << "\n";
         return;
     }
 
-    std::vector<std::vector<float>> params;
+    m_params.clear();
     std::string line;
 
     while (std::getline(file, line) && !line.empty()) {
@@ -74,54 +113,7 @@ void CreateSpatialIndex::ReadAndExecuteQueries(const std::string& filename, int 
             paramRow.push_back(value);
             if (paramStream.peek() == ',') paramStream.ignore();
         }
-        params.push_back(paramRow);
+        m_params.push_back(paramRow);
     }
     file.close();
-
-    Query(type, params);
-}
-
-void CreateSpatialIndex::Query(int type, const std::vector<std::vector<float>>& params) {
-    rtree::QueryBuilder queryBuilder(rtreeBuilder);
-
-    switch (type) {
-        case 0: { // Nearest
-            for (const auto& point : params) {
-                if (point.size() == 2) {
-                    rtree::Point p{point[0], point[1]};
-                    queryBuilder.GetNearestNeighbors(p, 5);
-                } else {
-                    std::cerr << "Invalid point for Nearest query.\n";
-                }
-            }
-            break;
-        }
-        case 1: { // Contains
-            for (const auto& rect : params) {
-                if (rect.size() == 4) {
-                    rtree::Rectangle range{rect[0], rect[1], rect[2], rect[3]};
-                    queryBuilder.GetRange(range);
-                } else {
-                    std::cerr << "Invalid rectangle for Contains query.\n";
-                }
-            }
-            break;
-        }
-        case 2: { // Intersects
-            for (const auto& rect : params) {
-                if (rect.size() == 4) {
-                    rtree::Rectangle r{rect[0], rect[1], rect[2], rect[3]};
-                    //rtree.intersects(r);
-                } else {
-                    std::cerr << "Invalid rectangle for Intersects query.\n";
-                }
-            }
-            break;
-        }
-        default: {
-            std::cerr << "\nInvalid query type. Please try again these are the options:" << std::endl;
-            std::cerr << "Nearest: 0 \nContains: 1 \nIntersects: 2" << std::endl;
-            break;
-        }
-    }
 }
