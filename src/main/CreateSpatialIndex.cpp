@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "../QueryBuilder.h"
+#include "../rtree/QueryBuilder.h"
 
 void CreateSpatialIndex::Start(const RTreeParams& params) {
     m_rtreeA = BuildTree(params.filepathA);

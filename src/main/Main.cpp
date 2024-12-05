@@ -1,10 +1,7 @@
 #include <chrono>
 #include <iostream>
 
-
-#include "../rtree/RTreeBuilder.h"
 #include "CreateSpatialIndex.h"
-using namespace rtree;
 
 int main() {
     auto start = std::chrono::high_resolution_clock::now();

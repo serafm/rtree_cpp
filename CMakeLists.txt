@@ -10,8 +10,8 @@ add_executable(rtree_cpp_v2
         src/rtree/Rectangle.h
         src/rtree/Point.cpp
         src/rtree/Point.h
-        src/QueryBuilder.cpp
-        src/QueryBuilder.h
+        src/rtree/QueryBuilder.cpp
+        src/rtree/QueryBuilder.h
         src/rtree/RTreeBuilder.cpp
         src/rtree/RTreeBuilder.h
         src/main/CreateSpatialIndex.cpp

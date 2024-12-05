@@ -8,9 +8,9 @@
 #include <stack>
 #include <vector>
 
-#include "rtree/Point.h"
-#include "rtree/RTreeBuilder.h"
-#include "rtree/Rectangle.h"
+#include "Point.h"
+#include "RTreeBuilder.h"
+#include "Rectangle.h"
 
 namespace rtree {
 

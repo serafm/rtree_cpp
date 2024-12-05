@@ -3,10 +3,9 @@
 #include <cmath>
 #include <iostream>
 #include <queue>
-#include <set>
 #include <vector>
 
-#include "rtree/RTreeBuilder.h"
+#include "RTreeBuilder.h"
 
 namespace rtree {
 
