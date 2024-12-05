@@ -28,26 +28,13 @@ namespace rtree {
         printJoinQuery();
     }
 
-    // Helper function to traverse leaf nodes
-    void QueryBuilder::collectLeafNodes(const std::shared_ptr<Node>& node, std::vector<std::shared_ptr<Node>>& leafNodes, RTreeBuilder& rtree) {
-        if (node->isLeaf()) {
-            leafNodes.push_back(node);
-        } else {
-            for (int i = 0; i < node->entryCount; ++i) {
-                int childNodeId = node->ids[i]; // Assuming `ids` stores the IDs of child nodes
-                auto childNode = rtree.getNode(childNodeId); // Fetch child node using RTreeBuilder
-                collectLeafNodes(childNode, leafNodes, rtree);
-            }
-        }
-    }
-
     // Join function implementation
     void QueryBuilder::join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) {
         m_joinRectangles.clear();
 
         // Start from the root nodes of both R-trees
-        auto rootA = rtreeA.getNode(rtreeA.m_rootNodeId);
-        auto rootB = rtreeB.getNode(rtreeB.m_rootNodeId);
+        auto rootA = rtreeA.getNode(rtreeA.getRootNodeId());
+        auto rootB = rtreeB.getNode(rtreeB.getRootNodeId());
 
         // Stack of node pairs to be processed
         std::stack<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> stack;
@@ -124,7 +111,7 @@ namespace rtree {
 
         // Stack to manage traversal: each element is a pair of node ID and the index of the last child node processed
         std::stack<std::pair<int, int>> traversalStack;
-        traversalStack.push({m_rtreeA.m_rootNodeId, -1});
+        traversalStack.push({m_rtreeA.getRootNodeId(), -1});
 
         float furthestNeighborDistance = MAXFLOAT;
 
@@ -188,7 +175,7 @@ namespace rtree {
     void QueryBuilder::contains(Rectangle& range) {
         // Initialize stack for traversal
         std::stack<int> nodeStack;
-        nodeStack.push(m_rtreeA.m_rootNodeId);
+        nodeStack.push(m_rtreeA.getRootNodeId());
 
         m_parentsEntry = std::stack<int>();
         m_parentsEntry.push(-1);

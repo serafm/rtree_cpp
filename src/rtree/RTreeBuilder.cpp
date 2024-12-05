@@ -403,4 +403,8 @@ namespace rtree {
         return m_nodeMap.size();
     }
 
+    int RTreeBuilder::getRootNodeId() const {
+        return m_rootNodeId;
+    }
+
 } // rtree

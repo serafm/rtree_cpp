@@ -64,6 +64,7 @@ namespace rtree {
          * Node constructor. Creates a new node with the given properties.
          * @param id Node id
          * @param level Level of the node in the tree.
+         * @param maxNodeEntries The max entries a node can have.
          */
         Node(int id, int level);
         Node();
@@ -145,13 +146,10 @@ namespace rtree {
         [[nodiscard]] int getLevel() const;
 
         /**
-         *
-         * @return
+         * Check if the node is empty
+         * @return boolean value
          */
         [[nodiscard]] bool isEmpty() const;
-
-        //void reset(int newLevel);
-
     };
 
 }

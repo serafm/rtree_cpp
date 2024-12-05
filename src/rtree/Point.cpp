@@ -1,5 +1,4 @@
 #include "Point.h"
-#include <cmath>
 
 namespace rtree {
 
@@ -11,14 +10,6 @@ namespace rtree {
     void Point::set(const Point & other) {
         this->x = other.x;
         this->y = other.y;
-    }
-
-    int Point::xInt() const {
-        return static_cast<int>(std::round(this->x));
-    }
-
-    int Point::yInt() const {
-        return static_cast<int>(std::round(this->y));
     }
 
     std::string Point::toString() const {

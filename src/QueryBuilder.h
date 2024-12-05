@@ -3,13 +3,11 @@
 #ifndef RTREE_H
 #define RTREE_H
 
-#include <memory>
+#include <map>
 #include <queue>
-#include <set>
 #include <stack>
 #include <vector>
 
-#include "rtree/Node.h"
 #include "rtree/Point.h"
 #include "rtree/RTreeBuilder.h"
 #include "rtree/Rectangle.h"
@@ -18,46 +16,93 @@ namespace rtree {
 
     class QueryBuilder {
 
-        // RTreeBuilder instances
         RTreeBuilder m_rtreeA;
         RTreeBuilder m_rtreeB;
-
         std::vector<int> m_ids;
         std::map<int, std::vector<int>> m_joinRectangles;
         std::priority_queue<std::pair<float, int>> m_distanceQueue;
         std::stack<int> m_parents;
         std::stack<int> m_parentsEntry;
 
-        // Builds a priority queue containing the nearest N rectangles to a given point p
-        void nearestN(const Point & p, int count);
+        /**
+         * @brief Finds the nearest N entries in the R-tree to a given point.
+         *
+         * This method performs a best-first search on the R-tree, maintaining a priority queue
+         * of candidate entries based on their distance to the query point. It explores branches
+         * that are more likely to contain closer neighbors first, pruning others as soon as enough
+         * nearer entries have been identified. This approach ensures that we efficiently find
+         * the top N nearest neighbors to the specified point.
+         *
+         * @param p The query point for which nearest neighbors are sought.
+         * @param count The number of nearest neighbors to retrieve.
+         */
+        void nearestN(const Point& p, int count);
 
-        // Find all rectangles in the tree that are contained by the passed rectangle
-        void contains(Rectangle& r);
+        /**
+         * @brief Searches the R-tree for entries contained within or intersecting a given rectangle.
+         *
+         * By leveraging the hierarchical bounding rectangles stored within the R-tree,
+         * this function prunes branches that cannot possibly contain results. It only
+         * descends into nodes whose bounding rectangles intersect with the query range,
+         * ensuring that the search is focused and efficient. All leaf entries that lie
+         * fully or partially within the specified rectangle are returned.
+         *
+         * @param range The query rectangle defining the spatial search region.
+         */
+        void contains(Rectangle& range);
 
-        void join(RTreeBuilder& treeA, RTreeBuilder& treeB);
+        /**
+         * @brief Performs a spatial join between two R-trees.
+         *
+         * This function recursively traverses both R-trees, identifying entries whose
+         * bounding rectangles intersect. By leveraging the hierarchical structure of
+         * the R-trees, it prunes large portions of the search space. Only nodes whose
+         * minimum bounding rectangles overlap are further explored, ensuring a more
+         * efficient join operation than a brute-force approach.
+         *
+         * @param rtreeA The first R-tree builder instance to join.
+         * @param rtreeB The second R-tree builder instance to join.
+         */
+        void join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB);
 
-        void collectLeafNodes(const std::shared_ptr<Node>& node, std::vector<std::shared_ptr<Node>>& leafNodes, RTreeBuilder& tree);
-
-        // Prints the Nearest Neighbors.
+        /**
+         * @brief Outputs the nearest neighbor search results for a given point.
+         *
+         * This function extracts all the nearest neighbors from the provided priority queue,
+         * sorts them by their distance from the query point, and prints them in ascending order.
+         * If only one neighbor is requested, it prints that neighbor directly without sorting.
+         *
+         * @param p The query point for which neighbors were found.
+         * @param queue A priority queue holding pairs of (distance, entry ID) representing nearest neighbors.
+         */
         void printNearestNeighbors(Point& p, std::priority_queue<std::pair<float, int>>& queue);
 
-        // Prints the rectangle ids contained by a range query
+        /**
+         * @brief Prints the results of a range query.
+         *
+         * Given a query rectangle and a list of IDs whose bounding rectangles are contained
+         * within or intersect the query rectangle, this function displays each qualifying ID.
+         *
+         * @param range The query rectangle used to filter the entries.
+         * @param ids A list of entry IDs that satisfy the range query conditions.
+         */
         void printRangeQuery(Rectangle& range, const std::vector<int>& ids);
 
-        // Prints the rectangle ids intersecting with a given query
+        /**
+         * @brief Prints the results of a spatial join query.
+         *
+         * After performing a join between two R-trees, this function lists each entry from
+         * the first R-tree alongside the IDs of entries in the second R-tree that intersect
+         * with it.
+         */
         void printJoinQuery();
 
         public:
 
         QueryBuilder(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB);
         explicit QueryBuilder(RTreeBuilder& rtreeA);
-
-        // Retrieve the rectangles contained in the given range
         void Range(Rectangle& range);
-
-        // Retrieve the N nearest rectangles to a point with sorted results
         void NearestNeighbors(Point& p, int count);
-
         void Join();
 
     };

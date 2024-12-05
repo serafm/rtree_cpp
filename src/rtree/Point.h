@@ -32,16 +32,6 @@ namespace rtree {
         * Print as a string in format "(x, y)"
         */
         std::string toString() const;
-
-        /**
-        * @return X coordinate rounded to an int
-        */
-        int xInt() const;
-
-        /**
-        * @return Y coordinate rounded to an int
-        */
-        int yInt() const;
     };
 }
 #endif // POINT_H
