@@ -78,7 +78,8 @@ public:
      *
      * @param params A structure containing the filepaths and other parameters used to build the R-trees.
      */
-    void Start(const RTreeParams& params);
+    void Start(const std::string& filepathA, const std::string& filepathB);
+    void Start(const std::string& filepath);
 
     void NearestNeighborsQuery(int n, const std::string& filename);
     void RangeQuery(const std::string& filename);

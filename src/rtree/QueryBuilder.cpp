@@ -1,6 +1,7 @@
 #include "QueryBuilder.h"
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <queue>
 #include <vector>
@@ -27,7 +28,6 @@ namespace rtree {
         printJoinQuery();
     }
 
-    // Join function implementation
     void QueryBuilder::join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) {
         m_joinRectangles.clear();
 
@@ -172,40 +172,49 @@ namespace rtree {
     }
 
     void QueryBuilder::contains(Rectangle& range) {
-        // Initialize stack for traversal
-        std::stack<int> nodeStack;
-        nodeStack.push(m_rtreeA.getRootNodeId());
+        m_ids.clear();
+        std::stack<int> parents;
+        std::stack<int> parentsEntry;
 
-        m_parentsEntry = std::stack<int>();
-        m_parentsEntry.push(-1);
+        // Push the root node and initialize entry index to -1
+        parents.push(m_rtreeA.getRootNodeId());
+        parentsEntry.push(-1);
 
-        // Traverse the R-tree
-        while (!nodeStack.empty()) {
-            int nodeId = nodeStack.top();
-            nodeStack.pop();
-            int startIndex = m_parentsEntry.top() + 1;
-
+        while (!parents.empty()) {
+            int nodeId = parents.top();
             auto n = m_rtreeA.getNode(nodeId);
+            int startIndex = parentsEntry.top() + 1;
 
             if (!n) {
                 std::cerr << "Error: Invalid node with ID " << nodeId << std::endl;
+                // Pop both stacks to move on
+                parents.pop();
+                parentsEntry.pop();
                 continue;
             }
 
             if (!n->isLeaf()) {
-                // Process non-leaf nodes: Check for intersections
+                bool intersects = false;
                 for (int i = startIndex; i < n->entryCount; i++) {
                     if (Rectangle::intersects(
                         range.minX, range.minY, range.maxX, range.maxY,
                         n->entriesMinX[i], n->entriesMinY[i],
-                        n->entriesMaxX[i], n->entriesMaxY[i])) {
-
-                        // Push child node for further exploration
-                        nodeStack.push(n->ids[i]);
-                        }
+                        n->entriesMaxX[i], n->entriesMaxY[i]))
+                    {
+                        // Found an intersecting entry, go deeper
+                        parents.push(n->ids[i]);
+                        parentsEntry.pop();   // remove old top
+                        parentsEntry.push(i); // record where we left off in the parent
+                        parentsEntry.push(-1);// initialize child's start index
+                        intersects = true;
+                        break; // break to process the newly added child node in next iteration
+                    }
+                }
+                if (intersects) {
+                    continue; // process the child node in the next iteration
                 }
             } else {
-                // Process leaf nodes: Check for containment or intersection
+                // Leaf node: Check for containment or intersection
                 for (int i = 0; i < n->entryCount; i++) {
                     bool isContained = Rectangle::contains(
                         range.minX, range.minY, range.maxX, range.maxY,
@@ -217,11 +226,14 @@ namespace rtree {
                         n->entriesMaxX[i], n->entriesMaxY[i]);
 
                     if (isContained || isIntersected) {
-                        // Add entry to results if it intersects or is contained
                         m_ids.push_back(n->ids[i]);
                     }
                 }
             }
+
+            // Done processing this node, pop stacks
+            parents.pop();
+            parentsEntry.pop();
         }
     }
 
@@ -259,22 +271,42 @@ namespace rtree {
     void QueryBuilder::printRangeQuery(Rectangle& range, const std::vector<int>& ids) {
         std::cout << "\nRange: " + range.toString() << std::endl;
         std::cout << "Contained rectangles:" << std::endl;
+        // Create and open a text file
+        std::ofstream MyFile("/home/serafm/dev/rtree_cpp_v2/src/range_query_resultsCpp.txt");
+
+        // Write to the file
+        MyFile << range.toString() << "\n";
+
         for (const int id : ids) {
             std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
+            MyFile << std::to_string(id) << "\n";
         }
+        // Close the file
+        MyFile.close();
     }
 
     void QueryBuilder::printJoinQuery() {
         std::cout << "Join Query Results:" << std::endl;
+        std::ofstream MyFile("/home/serafm/dev/rtree_cpp_v2/src/join_query_resultsCpp.txt");
+
         for (const auto& pair : m_joinRectangles) {
             int idA = pair.first;
+
+            // Write to the file
+            MyFile << "\n" << std::to_string(idA) << ": ";
+
             const auto& intersectedIds = pair.second;
+
 
             std::cout << "Rectangle ID in RTreeA: " << idA << " intersects with IDs in RTreeB: ";
             for (int idB : intersectedIds) {
                 std::cout << idB << " ";
+                MyFile << std::to_string(idB) << ",";
             }
             std::cout << std::endl;
         }
+
+        // Close the file
+        MyFile.close();
     }
 }

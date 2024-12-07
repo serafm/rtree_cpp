@@ -10,9 +10,13 @@
 #include <vector>
 #include "../rtree/QueryBuilder.h"
 
-void CreateSpatialIndex::Start(const RTreeParams& params) {
-    m_rtreeA = BuildTree(params.filepathA);
-    m_rtreeB = BuildTree(params.filepathB);
+void CreateSpatialIndex::Start(const std::string& filepathA, const std::string& filepathB) {
+    m_rtreeA = BuildTree(filepathA);
+    m_rtreeB = BuildTree(filepathB);
+}
+
+void CreateSpatialIndex::Start(const std::string& filepathA) {
+    m_rtreeA = BuildTree(filepathA);
 }
 
 rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
