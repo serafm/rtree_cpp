@@ -108,24 +108,28 @@ namespace rtree {
             return;
         }
 
+        m_distanceQueue = std::priority_queue<std::pair<float, int>>();
         // Stack to manage traversal: each element is a pair of node ID and the index of the last child node processed
-        std::stack<std::pair<int, int>> traversalStack;
-        traversalStack.push({m_rtreeA.getRootNodeId(), -1});
+        m_parents = std::stack<int>();
+        m_parents.push(m_rtreeA.getRootNodeId());
+
+        m_parentsEntry = std::stack<int>();
+        m_parentsEntry.push(-1);
 
         float furthestNeighborDistance = MAXFLOAT;
 
-        while (!traversalStack.empty()) {
-            auto [currentNodeId, startIndex] = traversalStack.top();
-            traversalStack.pop();
+        while (!m_parents.empty()) {
+            auto n = m_rtreeA.getNode(m_parents.top());
+            int startIndex = m_parentsEntry.top() + 1;
 
-            auto n = m_rtreeA.getNode(currentNodeId);
             if (n == nullptr) {
                 continue;
             }
 
             if (!n->isLeaf()) {
-                // Traverse child nodes starting from startIndex + 1
-                for (int i = startIndex + 1; i < n->entryCount; i++) {
+                bool near = false;
+                // Traverse child nodes starting from startIndex
+                for (int i = startIndex; i < n->entryCount; i++) {
                     float distanceSq = Rectangle::distanceSq(
                         n->entriesMinX[i], n->entriesMinY[i],
                         n->entriesMaxX[i], n->entriesMaxY[i],
@@ -134,14 +138,16 @@ namespace rtree {
                     // Consider this child if it could contain closer neighbors
                     if (m_distanceQueue.size() < count || distanceSq <= furthestNeighborDistance) {
                         // Push the current node back onto the stack with updated startIndex
-                        traversalStack.push({currentNodeId, i});
-
-                        // Push child node onto the stack with startIndex -1
-                        traversalStack.push({n->ids[i], -1});
-
-                        // Break to process the child node next
+                        m_parents.push(n->ids[i]);
+                        m_parentsEntry.pop();
+                        m_parentsEntry.push(i); // this becomes the start index when the child has been searched
+                        m_parentsEntry.push(-1);
+                        near = true;
                         break;
                     }
+                }
+                if (near) {
+                    continue;
                 }
             } else {
                 // Process leaf node entries
@@ -168,6 +174,8 @@ namespace rtree {
                     }
                 }
             }
+            m_parents.pop();
+            m_parentsEntry.pop();
         }
     }
 
