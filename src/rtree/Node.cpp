@@ -1,6 +1,4 @@
 #include "Node.h"
-#include <cstddef>
-#include <iostream>
 
 #include "RTreeBuilder.h"
 
@@ -42,7 +40,7 @@ namespace rtree {
         entryCount++;
     }
 
-    int Node::findEntry(float minX, float minY, float maxX, float maxY, int id) {
+    int Node::findEntry(float minX, float minY, float maxX, float maxY, int id) const {
         for (int i = 0; i < entryCount; i++) {
             if (id == ids[i] &&
               entriesMinX[i] == minX && entriesMinY[i] == minY &&

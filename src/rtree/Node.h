@@ -4,7 +4,7 @@
 #define NODE_H
 
 #include <limits>
-#include <math.h>
+#include <cmath>
 #include <vector>
 
 namespace rtree {
@@ -47,7 +47,7 @@ namespace rtree {
         int entryCount = 0;
 
         /**
-         * Queue of entries
+         * Vector of entries coordinates
          */
         std::vector<float> entriesMinX{};
         std::vector<float> entriesMinY{};
@@ -55,8 +55,7 @@ namespace rtree {
         std::vector<float> entriesMaxY{};
 
         /**
-         * Vector of:
-         * Rectangle ids if it's a leaf node / Node ids if it's parent node
+         * Vector of rectangle ids if it's a leaf node / Node ids if it's parent node
          */
         std::vector<int> ids;
 
@@ -64,7 +63,6 @@ namespace rtree {
          * Node constructor. Creates a new node with the given properties.
          * @param id Node id
          * @param level Level of the node in the tree.
-         * @param maxNodeEntries The max entries a node can have.
          */
         Node(int id, int level);
         Node();
@@ -89,7 +87,7 @@ namespace rtree {
          * @param id Entry id
          * @return
          */
-        int findEntry(float minX, float minY, float maxX, float maxY, int id);
+        int findEntry(float minX, float minY, float maxX, float maxY, int id) const;
 
         /**
          * Delete entry by index.
@@ -115,11 +113,6 @@ namespace rtree {
          * Reorganize the tree.
          */
         void reorganize(int maxNodeEntries);
-
-        /**
-         * Get all node entries.
-         */
-        void getNodeEntries() const;
 
         /**
          * Get the number of entries in the node.

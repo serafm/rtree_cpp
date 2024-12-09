@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef CREATESPATIALINDEX_H
 #define CREATESPATIALINDEX_H
 
@@ -6,7 +8,7 @@
 #include "../rtree/RTreeBuilder.h"
 
 class CreateSpatialIndex {
-private:
+
     // Instance members
     std::vector<std::vector<float>> m_params;
     rtree::RTreeBuilder m_rtreeA;

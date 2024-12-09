@@ -86,13 +86,6 @@ namespace rtree {
         return (maxX - minX) * (maxY - minY);
     }
 
-    void Rectangle::add(Rectangle r) {
-        if (r.minX < minX) minX = r.minX;
-        if (r.maxX > maxX) maxX = r.maxX;
-        if (r.minY < minY) minY = r.minY;
-        if (r.maxY > maxY) maxY = r.maxY;
-    }
-
     void Rectangle::add(Point p) {
         if (p.x < minX) minX = p.x;
         if (p.x > maxX) maxX = p.x;
@@ -100,35 +93,8 @@ namespace rtree {
         if (p.y > maxY) maxY = p.y;
     }
 
-    Rectangle Rectangle::findUnion(Rectangle& r) const {
-        Rectangle union_ = this->copy();
-        union_.add(r);
-        return union_;
-    }
-
-    int Rectangle::floatToIntBits(float value) {
-        FloatIntUnion u{};
-        u.f = value;
-        return u.i;
-    }
-
-    int Rectangle::hashCode() const {
-        static int prime = 31;
-        int result = 1;
-        result = prime * result + floatToIntBits(maxX);
-        result = prime * result + floatToIntBits(maxY);
-        result = prime * result + floatToIntBits(minX);
-        result = prime * result + floatToIntBits(minY);
-        return result;
-    }
-
     bool Rectangle::equals(Rectangle& r) const {
         return maxX == r.maxX && maxY == r.maxY && minX == r.minX && minY == r.minY;
-    }
-
-    bool Rectangle::sameObject(Rectangle& r) {
-        // TODO: The object to compare with this rectangle.
-        return true;
     }
 
     float Rectangle::width() const {

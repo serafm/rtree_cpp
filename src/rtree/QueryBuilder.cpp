@@ -279,42 +279,25 @@ namespace rtree {
     void QueryBuilder::printRangeQuery(Rectangle& range, const std::vector<int>& ids) {
         std::cout << "\nRange: " + range.toString() << std::endl;
         std::cout << "Contained rectangles:" << std::endl;
-        // Create and open a text file
-        std::ofstream MyFile("/home/serafm/dev/rtree_cpp_v2/src/range_query_resultsCpp.txt");
-
-        // Write to the file
-        MyFile << range.toString() << "\n";
 
         for (const int id : ids) {
             std::cout << "Rectangle with ID: " << id << " was contained" << std::endl;
-            MyFile << std::to_string(id) << "\n";
         }
-        // Close the file
-        MyFile.close();
     }
 
     void QueryBuilder::printJoinQuery() {
         std::cout << "Join Query Results:" << std::endl;
-        std::ofstream MyFile("/home/serafm/dev/rtree_cpp_v2/src/join_query_resultsCpp.txt");
 
         for (const auto& pair : m_joinRectangles) {
             int idA = pair.first;
 
-            // Write to the file
-            MyFile << "\n" << std::to_string(idA) << ": ";
-
             const auto& intersectedIds = pair.second;
-
 
             std::cout << "Rectangle ID in RTreeA: " << idA << " intersects with IDs in RTreeB: ";
             for (int idB : intersectedIds) {
                 std::cout << idB << " ";
-                MyFile << std::to_string(idB) << ",";
             }
             std::cout << std::endl;
         }
-
-        // Close the file
-        MyFile.close();
     }
 }

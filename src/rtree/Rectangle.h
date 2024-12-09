@@ -4,7 +4,6 @@
 #define RECTANGLE_H
 
 #include <string>
-
 #include "Point.h"
 
 namespace rtree {
@@ -35,22 +34,11 @@ namespace rtree {
         */
         Rectangle copy() const;
 
-        bool isEmpty() const;
-
         /**
             * Determine whether the edge of this rectangle overlies the equivalent
             * edge of the passed rectangle
         */
         bool edgeOverlaps(Rectangle& r) const;
-
-        /**
-            * Determine whether this rectangle intersects the passed rectangle
-            *
-            * @param r The rectangle that might intersect this rectangle
-            *
-            * @return true if the rectangles intersect, false if they do not intersect
-        */
-        bool intersects(Rectangle& r) const;
 
         /**
         * Determine whether two rectangles intersect
@@ -70,27 +58,21 @@ namespace rtree {
                         float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
 
         /**
-            * Determine whether this rectangle contains the passed rectangle
-            *
-            * @param r The rectangle that might be contained by this rectangle
-            *
-            * @return true if this rectangle contains the passed rectangle, false if
-            *         it does not
-        */
-        bool contains(Rectangle& r) const;
-
+         * Determine whether if r1 rectangle contains r2 rectangle
+         *
+         * @param r1MinX minimum X coordinate of rectangle 1
+         * @param r1MinY minimum Y coordinate of rectangle 1
+         * @param r1MaxX maximum X coordinate of rectangle 1
+         * @param r1MaxY maximum Y coordinate of rectangle 1
+         * @param r2MinX minimum X coordinate of rectangle 2
+         * @param r2MinY minimum Y coordinate of rectangle 2
+         * @param r2MaxX maximum X coordinate of rectangle 2
+         * @param r2MaxY maximum Y coordinate of rectangle 2
+         *
+         * @return true if r1 contains r2, false otherwise.
+         */
         static bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                                  float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
-
-        /**
-            * Determine whether this rectangle is contained by the passed rectangle
-            *
-            * @param r The rectangle that might contain this rectangle
-            *
-            * @return true if the passed rectangle contains this rectangle, false if
-            *         it does not
-        */
-        bool containedBy(Rectangle& r) const;
 
         /**
             * Return the distance between a rectangle and a point.
@@ -106,18 +88,6 @@ namespace rtree {
             * @return distance between this rectangle and the passed point.
         */
         static float distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY);
-
-        /**
-            * Calculate the area by which this rectangle would be enlarged if
-            * added to the passed rectangle. Neither rectangle is altered.
-            *
-            * @param r Rectangle to union with this rectangle, to
-            *          compute the difference in the area of the union and the
-            *          original rectangle
-            *
-            * @return enlargement
-        */
-        float enlargement(Rectangle& r) const;
 
         /**
             * Calculate the area by which a rectangle would be enlarged if
@@ -138,13 +108,6 @@ namespace rtree {
                           float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
 
         /**
-            * Compute the area of this rectangle.
-            *
-            * @return The area of this rectangle
-        */
-        float area() const;
-
-        /**
             * Compute the area of a rectangle.
             *
             * @param minX the minimum X coordinate of the rectangle
@@ -157,14 +120,6 @@ namespace rtree {
         static float area(float minX, float minY, float maxX, float maxY);
 
         /**
-            * Computes the union of this rectangle and the passed rectangle, storing
-            * the result in this rectangle.
-            *
-            * @param r Rectangle to add to this rectangle
-        */
-        void add(Rectangle r);
-
-        /**
             * Computes the union of this rectangle and the passed point, storing
             * the result in this rectangle.
             *
@@ -173,39 +128,12 @@ namespace rtree {
         void add(Point p);
 
         /**
-            * Find the union of this rectangle and the passed rectangle.
-            * Neither rectangle is altered
-            *
-            * @param r The rectangle to union with this rectangle
-        */
-        Rectangle findUnion(Rectangle& r) const;
-
-        union FloatIntUnion {
-            float f;
-            int i;
-        };
-
-        static int floatToIntBits(float value);
-
-        int hashCode() const;
-
-        /**
             * Determine whether this rectangle is equal to a given object.
             * Equality is determined by the bounds of the rectangle.
             *
-            * @param o The object to compare with this rectangle
+            * @param r The object to compare with this rectangle
         */
         bool equals(Rectangle& r) const;
-
-        /**
-            * Determine whether this rectangle is the same as another object
-            *
-            * Note that two rectangles can be equal but different object
-            * if they both have the same bounds.
-            *
-            * @param o The object to compare with this rectangle.
-        */
-        static bool sameObject(Rectangle& r);
 
         float width() const;
 

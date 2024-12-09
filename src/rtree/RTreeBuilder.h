@@ -20,7 +20,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * Nodes must have at least this many entries, except for the root node which is
      * allowed to have fewer to accommodate varying tree sizes.
      */
-    static const int DEFAULT_MIN_NODE_ENTRIES = 20;
+    static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
 
     /**
      * @brief Status value indicating that an entry has been assigned to a node.
@@ -28,7 +28,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * During node splits, entries are either marked as assigned to one of the two new nodes
      * or remain unassigned until a decision is made.
      */
-    static const int ENTRY_STATUS_ASSIGNED = 0;
+    static constexpr int ENTRY_STATUS_ASSIGNED = 0;
 
     /**
      * @brief Status value indicating that an entry has not yet been assigned to a node.
@@ -36,7 +36,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * Used during node splitting operations to track entries that need to be distributed
      * between the original and the newly created node.
      */
-    static const int ENTRY_STATUS_UNASSIGNED = 1;
+    static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
 
     /**
      * @brief A mapping of node IDs to their corresponding node objects.
@@ -271,7 +271,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * Initializes an RTreeBuilder instance with default parameters and sets up the
      * initial root node of the R-tree. The default maximum and minimum node entry
      * counts are used, and internal bookkeeping data structures (e.g., status arrays,
-     * node maps) are prepared for subsequent insertions.
+     * node maps) are prepared for later insertions.
      */
     RTreeBuilder();
 
@@ -322,7 +322,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * When a node tries to accommodate more than this limit, it must be split,
      * distributing entries between the original and a newly created node.
      */
-    static const int DEFAULT_MAX_NODE_ENTRIES = 50;
+    static constexpr int DEFAULT_MAX_NODE_ENTRIES = 50;
 
     int getRootNodeId() const;
 };

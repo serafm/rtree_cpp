@@ -5,46 +5,57 @@
 namespace rtree {
 
     RTreeBuilder::RTreeBuilder() :
-        m_initialEntryStatus(DEFAULT_MAX_NODE_ENTRIES),
         m_entryStatus(DEFAULT_MAX_NODE_ENTRIES),
+        m_initialEntryStatus(DEFAULT_MAX_NODE_ENTRIES),
         m_maxNodeEntries(DEFAULT_MAX_NODE_ENTRIES),
         m_minNodeEntries(DEFAULT_MIN_NODE_ENTRIES)
     {
+        // Initialize all entry statuses to ENTRY_STATUS_UNASSIGNED
         m_initialEntryStatus.assign(m_maxNodeEntries, ENTRY_STATUS_UNASSIGNED);
+
+        // Create the root node
         m_root = std::make_shared<Node>(m_rootNodeId, 1);
         m_nodeMap.emplace(m_rootNodeId, m_root);
     }
 
     void RTreeBuilder::addEntry(const Rectangle & r)
     {
+        // Add a new entry (rectangle) at the lowest level (1)
+        // Increment entry ID and tree size
         add(r.minX, r.minY, r.maxX, r.maxY, m_entryId, 1);
         m_entryId++;
         m_size++;
     }
 
     void RTreeBuilder::add(float minX, float minY, float maxX, float maxY, int id, int level) {
+        // Choose the appropriate node where this rectangle should be inserted
         const auto& node = chooseNode(minX, minY, maxX, maxY, level);
         std::shared_ptr<Node> newLeaf;
 
-        // Check if the node has space for new entry
+        // If the chosen node has space, add the entry
         if (node->entryCount < m_maxNodeEntries)
         {
             node->addEntry(minX, minY, maxX, maxY, id);
         } else {
+            // Otherwise, split the node to handle overflow
             newLeaf = splitNode(node, minX, minY, maxX, maxY, id);
         }
 
+        // Adjust the tree up the hierarchy if needed (handle node splits up the chain)
         const auto newNode = adjustTree(node, newLeaf);
 
+        // If a new node was created at the root level, create a new root
         if (newNode != nullptr)
         {
             const int oldRootNodeId = m_rootNodeId;
             const std::shared_ptr<Node> oldRoot = getNode(oldRootNodeId);
 
+            // Increase tree height as we're adding a new root level
             m_rootNodeId = getNextNodeId();
             m_treeHeight++;
             auto root = std::make_shared<Node>(m_rootNodeId, m_treeHeight);
 
+            // The new root will encompass both the old root and the new node
             root->addEntry(newNode->mbrMinX, newNode->mbrMinY, newNode->mbrMaxX, newNode->mbrMaxY, newNode->nodeId);
             root->addEntry(oldRoot->mbrMinX, oldRoot->mbrMinY, oldRoot->mbrMaxX, oldRoot->mbrMaxY, oldRoot->nodeId);
 
@@ -54,24 +65,32 @@ namespace rtree {
 
     std::shared_ptr<Node> RTreeBuilder::splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId)
     {
+        // Reset entry status before splitting
         m_entryStatus.assign(m_initialEntryStatus.begin(), m_initialEntryStatus.end());
 
+        // Create a new node at the same level to hold some of the entries
         auto newNode = std::make_shared<Node>(getNextNodeId(), n->level);
         m_nodeMap.emplace(newNode->nodeId, newNode);
 
         if (newNode != nullptr) {
+            // Pick initial "seed" entries to decide how to split the node into two groups
             pickSeeds(n, newRectMinX, newRectMinY, newRectMaxX, newRectMaxY, newId, newNode);
         } else {
             std::cerr << "Error: Failed to split node is null" << std::endl;
             std::exit(1);
         }
 
+        // Distribute the remaining entries between n and newNode
+        // until all entries have been assigned or a minimal size constraint is reached
         while ((n->entryCount + newNode->entryCount) < m_maxNodeEntries + 1) {
+            // If the number of entries left unassigned must all go to the original node
             if ((m_maxNodeEntries + 1 - newNode->entryCount) == m_minNodeEntries) {
                 for (int i = 0; i < m_maxNodeEntries; i++) {
                     if (m_entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                        // Assign remaining entries to the original node
                         m_entryStatus[i] = ENTRY_STATUS_ASSIGNED;
 
+                        // Update MBR of the original node
                         if (n->entriesMinX[i] < n->mbrMinX) n->mbrMinX = n->entriesMinX[i];
                         if (n->entriesMinY[i] < n->mbrMinY) n->mbrMinY = n->entriesMinY[i];
                         if (n->entriesMaxX[i] > n->mbrMaxX) n->mbrMaxX = n->entriesMaxX[i];
@@ -82,27 +101,34 @@ namespace rtree {
                 }
                 break;
             }
+            // If the number of entries left unassigned must all go to the new node
             if ((m_maxNodeEntries + 1 - n->entryCount) == m_minNodeEntries) {
                 for (int i = 0; i < m_maxNodeEntries; i++) {
                     if (m_entryStatus[i] == ENTRY_STATUS_UNASSIGNED) {
+                        // Assign remaining entries to the new node
                         m_entryStatus[i] = ENTRY_STATUS_ASSIGNED;
                         newNode->addEntry(n->entriesMinX[i], n->entriesMinY[i], n->entriesMaxX[i], n->entriesMaxY[i], n->ids[i]);
-                        n->ids[i] = -1;
+                        n->ids[i] = -1; // Mark the original entry as moved
                     }
                 }
                 break;
             }
+            // Otherwise, pick the next best entry to distribute
             pickNext(n, newNode);
         }
+        // Reorganize the original node to remove gaps caused by moved entries
         n->reorganize(m_maxNodeEntries);
         return newNode;
     }
 
     void RTreeBuilder::pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode) {
+        // This method chooses the initial entries that separate the data most, in order to start splitting.
+        // It aims to find two entries that are as far apart as possible.
         float maxNormalizedSeparation = -1;
         int highestLowIndex = -1;
         int lowestHighIndex = -1;
 
+        // Update MBR of n to include the new rectangle
         if (newRectMinX < n->mbrMinX) n->mbrMinX = newRectMinX;
         if (newRectMinY < n->mbrMinY) n->mbrMinY = newRectMinY;
         if (newRectMaxX > n->mbrMaxX) n->mbrMaxX = newRectMaxX;
@@ -111,10 +137,9 @@ namespace rtree {
         float mbrLenX = n->mbrMaxX - n->mbrMinX;
         float mbrLenY = n->mbrMaxY - n->mbrMinY;
 
-        // X-Dimension
+        // Compare separations along X dimension
         float tempHighestLow = newRectMinX;
         int tempHighestLowIndex = -1;
-
         float tempLowestHigh = newRectMaxX;
         int tempLowestHighIndex = -1;
 
@@ -131,9 +156,10 @@ namespace rtree {
                 }
             }
 
-            // Ensure no negative separation
+            // Compute normalized separation
             float normalizedSeparation = (mbrLenX == 0.0f) ? 1.0f : ((tempHighestLow - tempLowestHigh) / mbrLenX);
 
+            // Track maximum normalized separation
             if (normalizedSeparation >= maxNormalizedSeparation) {
                 highestLowIndex = tempHighestLowIndex;
                 lowestHighIndex = tempLowestHighIndex;
@@ -141,10 +167,9 @@ namespace rtree {
             }
         }
 
-        // Y-Dimension
+        // Compare separations along Y dimension as well
         tempHighestLow = newRectMinY;
         tempHighestLowIndex = -1;
-
         tempLowestHigh = newRectMaxY;
         tempLowestHighIndex = -1;
 
@@ -171,7 +196,7 @@ namespace rtree {
             }
         }
 
-        // Handle potential overlap cases
+        // If the same entry is picked twice, adjust to ensure two distinct seeds
         if (highestLowIndex == lowestHighIndex) {
             highestLowIndex = -1;
             float tempMinY = newRectMinY;
@@ -189,6 +214,7 @@ namespace rtree {
             }
         }
 
+        // Assign the first seed to newNode if no valid highestLowIndex was found
         if (highestLowIndex == -1) {
             newNode->addEntry(
                 newRectMinX,
@@ -197,6 +223,7 @@ namespace rtree {
                 newRectMaxY,
                 newId);
         } else {
+            // Move the chosen seed entry from the original node to the new node
             newNode->addEntry(
                 n->entriesMinX[highestLowIndex],
                 n->entriesMinY[highestLowIndex],
@@ -205,8 +232,8 @@ namespace rtree {
                 n->ids[highestLowIndex]
                 );
 
+            // Replace the seed entry in the original node with the newly inserted rectangle
             n->ids[highestLowIndex] = -1;
-
             n->entriesMinX[highestLowIndex] = newRectMinX;
             n->entriesMinY[highestLowIndex] = newRectMinY;
             n->entriesMaxX[highestLowIndex] = newRectMaxX;
@@ -219,9 +246,13 @@ namespace rtree {
             lowestHighIndex = highestLowIndex;
         }
 
-        // Update the entry count properly (do not overwrite it)
+        // Mark the chosen seed entry as assigned
         m_entryStatus[lowestHighIndex] = ENTRY_STATUS_ASSIGNED;
-        n->entryCount = 1;  // Decrease by one after moving an entry to newNode
+
+        // Update entry count of the original node to reflect that one seed remains there
+        n->entryCount = 1;
+
+        // Update MBR of the original node based on this one assigned seed
         n->mbrMinX = n->entriesMinX[lowestHighIndex];
         n->mbrMinY = n->entriesMinY[lowestHighIndex];
         n->mbrMaxX = n->entriesMaxX[lowestHighIndex];
@@ -229,6 +260,8 @@ namespace rtree {
     }
 
     int RTreeBuilder::pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode) {
+        // From the unassigned entries, pick the next, one which will cause the greatest difference in area enlargement
+        // if assigned to one group versus the other.
         float maxDifference = -MAXFLOAT;
         int next = 0;
         int nextGroup = 0;
@@ -253,10 +286,11 @@ namespace rtree {
 
                 float difference = std::abs(nIncrease - newNodeIncrease);
 
+                // Choose the entry that maximizes the difference
                 if (difference > maxDifference) {
                     next = i;
 
-                    // Adjust group based on enlargement comparison
+                    // Decide which node (original or new) the entry should belong to
                     if (nIncrease < newNodeIncrease) {
                         nextGroup = 0;
                     } else if (newNodeIncrease < nIncrease) {
@@ -277,6 +311,7 @@ namespace rtree {
 
         m_entryStatus[next] = ENTRY_STATUS_ASSIGNED;
 
+        // Assign the chosen entry to the determined group
         if (nextGroup == 0) {
             if (n->entriesMinX[next] < n->mbrMinX) n->mbrMinX = n->entriesMinX[next];
             if (n->entriesMinY[next] < n->mbrMinY) n->mbrMinY = n->entriesMinY[next];
@@ -292,12 +327,14 @@ namespace rtree {
     }
 
     std::shared_ptr<Node> RTreeBuilder::chooseNode(float minX, float minY, float maxX, float maxY, int level) {
+        // Traverse down from the root until a node of the desired level is found
         auto n = getNode(m_rootNodeId);
         if (!n) {
             std::cerr << "Could not get root node " << m_rootNodeId << std::endl;
             return nullptr;
         }
 
+        // Clear parent stacks in preparation for the descent
         m_parents = std::stack<int>();
         m_parentsEntry = std::stack<int>();
 
@@ -306,10 +343,12 @@ namespace rtree {
                 std::cerr << "Could not get root node (" + std::to_string(m_rootNodeId) + ")" << std::endl;
             }
 
+            // If we have reached the correct level, return this node
             if (n->level == level) {
                 return n;
             }
 
+            // Otherwise, choose the entry that requires the least enlargement to accommodate the given rectangle
             float leastEnlargement = Rectangle::enlargement(n->entriesMinX[0], n->entriesMinY[0], n->entriesMaxX[0], n->entriesMaxY[0],
                                                      minX, minY, maxX, maxY);
             int index = 0;
@@ -323,6 +362,7 @@ namespace rtree {
                 float tempEnlargement = Rectangle::enlargement(tempMinX, tempMinY, tempMaxX, tempMaxY,
                                                                      minX, minY, maxX, maxY);
 
+                // Tie-break: if enlargement is equal, choose the entry with smaller area
                 if ((tempEnlargement < leastEnlargement) ||
                     ((tempEnlargement == leastEnlargement) &&
                         (Rectangle::area(tempMinX, tempMinY, tempMaxX, tempMaxY) <
@@ -332,6 +372,8 @@ namespace rtree {
                         leastEnlargement = tempEnlargement;
                     }
             }
+
+            // Save the path taken so we can adjust nodes up the hierarchy later if needed
             m_parents.push(n->nodeId);
             m_parentsEntry.push(index);
             n = getNode(n->ids[index]);
@@ -339,18 +381,21 @@ namespace rtree {
     }
 
     std::shared_ptr<Node> RTreeBuilder::adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn) {
+        // Climb up the tree, adjusting bounding boxes and handling node splits
         while (n->level != m_treeHeight) {
             auto parent = getNode(m_parents.top());
             m_parents.pop();
             int entry = m_parentsEntry.top();
             m_parentsEntry.pop();
 
+            // Validate parent entry's reference
             if (parent->ids[entry] != n->nodeId) {
                 std::cerr << "Error: entry " << entry << " in node " <<
                      parent->nodeId << " should point to node " <<
                      n->nodeId << ", actually points to node " << parent->ids[entry] << std::endl;
             }
 
+            // Update parent's MBR if needed
             if (parent->entriesMinX[entry] != n->mbrMinX ||
                parent->entriesMinY[entry] != n->mbrMinY ||
                parent->entriesMaxX[entry] != n->mbrMaxX ||
@@ -366,16 +411,18 @@ namespace rtree {
 
             std::shared_ptr<Node> newNode;
             if (nn != nullptr) {
+                // If there's a newly split node from below, try adding it here
                 if (parent->entryCount < m_maxNodeEntries) {
                     parent->addEntry(nn->mbrMinX, nn->mbrMinY, nn->mbrMaxX, nn->mbrMaxY, nn->nodeId);
                 } else {
+                    // If the parent is full, split it too
                     newNode = splitNode(parent, nn->mbrMinX, nn->mbrMinY, nn->mbrMaxX, nn->mbrMaxY, nn->nodeId);
                 }
             }
 
+            // Move up the tree
             n = std::move(parent);
             nn = std::move(newNode);
-
         }
         return nn;
     }
@@ -407,4 +454,4 @@ namespace rtree {
         return m_rootNodeId;
     }
 
-} // rtree
+} // namespace rtree
