@@ -29,73 +29,85 @@ namespace rtree {
     }
 
     void QueryBuilder::join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) {
-        m_joinRectangles.clear();
+        m_joinRectangles.clear(); // Clear previous join results to prepare for a fresh spatial join
 
         // Start from the root nodes of both R-trees
         auto rootA = rtreeA.getNode(rtreeA.getRootNodeId());
         auto rootB = rtreeB.getNode(rtreeB.getRootNodeId());
 
-        // Stack of node pairs to be processed
-        std::stack<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> stack;
-        stack.push({rootA, rootB});
+        // Stack for iterative traversal of node pairs from both R-trees
+        std::stack<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> nodePairs;
+        nodePairs.push({rootA, rootB}); // Initialize the nodePairs with the root nodes of both trees
 
-        while (!stack.empty()) {
-            auto [nodeA, nodeB] = stack.top();
-            stack.pop();
+        // Depth-first traversal of the R-tree pairs
+        while (!nodePairs.empty()) {
+            auto [nodeA, nodeB] = nodePairs.top(); // Get the top pair of nodes from the nodePairs
+            nodePairs.pop(); // Remove the processed pair from the nodePairs
 
-            // Check if nodes intersect at the MBR level
+            // Check if the MBRs of the current pair of nodes intersect
             if (!Rectangle::intersects(
                     nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,
                     nodeB->mbrMinX, nodeB->mbrMinY, nodeB->mbrMaxX, nodeB->mbrMaxY)) {
-                continue; // No intersection, prune
+                continue; // If no intersection, prune the pair and move on
             }
 
-            // If both nodes are leaves, do a pairwise check of their entries
+            // Case 1: Both nodes are leaves
             if (nodeA->isLeaf() && nodeB->isLeaf()) {
+                // Perform pairwise comparisons of all entries in both nodes
                 for (int i = 0; i < nodeA->entryCount; i++) {
                     for (int j = 0; j < nodeB->entryCount; j++) {
+                        // Check if the rectangles of the two entries intersect
                         if (Rectangle::intersects(
                                 nodeA->entriesMinX[i], nodeA->entriesMinY[i], nodeA->entriesMaxX[i], nodeA->entriesMaxY[i],
                                 nodeB->entriesMinX[j], nodeB->entriesMinY[j], nodeB->entriesMaxX[j], nodeB->entriesMaxY[j])) {
+                            // Add the intersecting pair (ID of entryA, ID of entryB) to the results
                             int idA = nodeA->ids[i];
                             int idB = nodeB->ids[j];
                             m_joinRectangles[idA].push_back(idB);
                         }
                     }
                 }
-            } else if (!nodeA->isLeaf() && !nodeB->isLeaf()) {
-                // If both are internal nodes, compare their children
+            }
+            // Case 2: Both nodes are internal (non-leaf) nodes
+            else if (!nodeA->isLeaf() && !nodeB->isLeaf()) {
+                // Compare each child node of nodeA with each child node of nodeB
                 for (int i = 0; i < nodeA->entryCount; i++) {
-                    auto childA = rtreeA.getNode(nodeA->ids[i]);
+                    auto childA = rtreeA.getNode(nodeA->ids[i]); // Get child node from R-tree A
                     for (int j = 0; j < nodeB->entryCount; j++) {
-                        auto childB = rtreeB.getNode(nodeB->ids[j]);
+                        auto childB = rtreeB.getNode(nodeB->ids[j]); // Get child node from R-tree B
 
-                        // Only push if bounding boxes intersect
+                        // Push the pair onto the nodePairs if their bounding boxes intersect
                         if (Rectangle::intersects(
                                 childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
                                 childB->mbrMinX, childB->mbrMinY, childB->mbrMaxX, childB->mbrMaxY)) {
-                            stack.push({childA, childB});
+                            nodePairs.push({childA, childB});
                         }
                     }
                 }
-            } else if (!nodeA->isLeaf() && nodeB->isLeaf()) {
-                // nodeA is internal, nodeB is leaf
+            }
+            // Case 3: NodeA is internal, NodeB is a leaf
+            else if (!nodeA->isLeaf() && nodeB->isLeaf()) {
+                // Compare each child node of nodeA with the leaf nodeB
                 for (int i = 0; i < nodeA->entryCount; i++) {
-                    auto childA = rtreeA.getNode(nodeA->ids[i]);
+                    auto childA = rtreeA.getNode(nodeA->ids[i]); // Get child node from R-tree A
+                    // Push the pair onto the nodePairs if their bounding boxes intersect
                     if (Rectangle::intersects(
                             childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
                             nodeB->mbrMinX, nodeB->mbrMinY, nodeB->mbrMaxX, nodeB->mbrMaxY)) {
-                        stack.push({childA, nodeB});
+                        nodePairs.push({childA, nodeB});
                     }
                 }
-            } else {
-                // nodeA is leaf, nodeB is internal
+            }
+            // Case 4: NodeA is a leaf, NodeB is internal
+            else {
+                // Compare the leaf nodeA with each child node of nodeB
                 for (int j = 0; j < nodeB->entryCount; j++) {
-                    auto childB = rtreeB.getNode(nodeB->ids[j]);
+                    auto childB = rtreeB.getNode(nodeB->ids[j]); // Get child node from R-tree B
+                    // Push the pair onto the nodePairs if their bounding boxes intersect
                     if (Rectangle::intersects(
                             nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,
                             childB->mbrMinX, childB->mbrMinY, childB->mbrMaxX, childB->mbrMaxY)) {
-                        stack.push({nodeA, childB});
+                        nodePairs.push({nodeA, childB});
                     }
                 }
             }
@@ -108,74 +120,98 @@ namespace rtree {
             return;
         }
 
+        // Clear previously stored results
         m_distanceQueue = std::priority_queue<std::pair<float, int>>();
-        // Stack to manage traversal: each element is a pair of node ID and the index of the last child node processed
-        m_parents = std::stack<int>();
-        m_parents.push(m_rtreeA.getRootNodeId());
-
-        m_parentsEntry = std::stack<int>();
-        m_parentsEntry.push(-1);
 
         float furthestNeighborDistance = MAXFLOAT;
 
-        while (!m_parents.empty()) {
-            auto n = m_rtreeA.getNode(m_parents.top());
-            int startIndex = m_parentsEntry.top() + 1;
+        // A min-heap for nodes based on their bounding box distance to the query point
+        // We store pairs of (distance, nodeId), and use std::greater<> to get the smallest distance on top
+        std::priority_queue<
+            std::pair<float,int>,
+            std::vector<std::pair<float,int>>,
+            std::greater<std::pair<float,int>>
+        > nodeQueue;
 
-            if (n == nullptr) {
+        // Start by pushing the root node
+        int rootNodeId = m_rtreeA.getRootNodeId();
+        auto rootNode = m_rtreeA.getNode(rootNodeId);
+        if (!rootNode) {
+            return; // no root node
+        }
+
+        // Compute bounding box of the root node to measure its distance from point p
+        // Typically the root node bounding box is either stored or we can derive it from its entries.
+        float nodeMinX = MAXFLOAT;
+        float nodeMinY = MAXFLOAT;
+        float nodeMaxX = -MAXFLOAT;
+        float nodeMaxY = -MAXFLOAT;
+
+        for (int i = 0; i < rootNode->entryCount; i++) {
+            nodeMinX = std::min(nodeMinX, rootNode->entriesMinX[i]);
+            nodeMinY = std::min(nodeMinY, rootNode->entriesMinY[i]);
+            nodeMaxX = std::max(nodeMaxX, rootNode->entriesMaxX[i]);
+            nodeMaxY = std::max(nodeMaxY, rootNode->entriesMaxY[i]);
+        }
+
+        float rootDist = Rectangle::distanceSq(nodeMinX, nodeMinY, nodeMaxX, nodeMaxY, p.x, p.y);
+        nodeQueue.push({rootDist, rootNodeId});
+
+        // Best-first search loop
+        while (!nodeQueue.empty()) {
+            // Get the node with the smallest bounding box distance
+            auto [dist, nodeId] = nodeQueue.top();
+            nodeQueue.pop();
+
+            // If this distance is already greater than the furthest neighbor we have found,
+            // this node cannot yield better results, so skip it.
+            if (m_distanceQueue.size() == count && dist > furthestNeighborDistance) {
+                continue;
+            }
+
+            auto n = m_rtreeA.getNode(nodeId);
+            if (!n) {
                 continue;
             }
 
             if (!n->isLeaf()) {
-                bool near = false;
-                // Traverse child nodes starting from startIndex
-                for (int i = startIndex; i < n->entryCount; i++) {
-                    float distanceSq = Rectangle::distanceSq(
+                // Non-leaf node: explore its children
+                for (int i = 0; i < n->entryCount; i++) {
+                    float childDist = Rectangle::distanceSq(
                         n->entriesMinX[i], n->entriesMinY[i],
                         n->entriesMaxX[i], n->entriesMaxY[i],
-                        p.x, p.y);
+                        p.x, p.y
+                    );
 
-                    // Consider this child if it could contain closer neighbors
-                    if (m_distanceQueue.size() < count || distanceSq <= furthestNeighborDistance) {
-                        // Push the current node back onto the stack with updated startIndex
-                        m_parents.push(n->ids[i]);
-                        m_parentsEntry.pop();
-                        m_parentsEntry.push(i); // this becomes the start index when the child has been searched
-                        m_parentsEntry.push(-1);
-                        near = true;
-                        break;
+                    // Only consider pushing this child if it could possibly improve results
+                    if (m_distanceQueue.size() < count || childDist <= furthestNeighborDistance) {
+                        nodeQueue.push({childDist, n->ids[i]});
                     }
                 }
-                if (near) {
-                    continue;
-                }
             } else {
-                // Process leaf node entries
+                // Leaf node: process actual data entries
                 for (int i = 0; i < n->entryCount; i++) {
                     float entryDistanceSq = Rectangle::distanceSq(
                         n->entriesMinX[i], n->entriesMinY[i],
                         n->entriesMaxX[i], n->entriesMaxY[i],
-                        p.x, p.y);
+                        p.x, p.y
+                    );
                     int entryId = n->ids[i];
 
                     if (m_distanceQueue.size() < count) {
-                        // Add to the priority queue
+                        // Add to the priority queue of results (max heap)
                         m_distanceQueue.emplace(entryDistanceSq, entryId);
-
-                        // Update the furthest neighbor distance if we've reached the desired count
                         if (m_distanceQueue.size() == count) {
                             furthestNeighborDistance = m_distanceQueue.top().first;
                         }
-                    } else if (entryDistanceSq < furthestNeighborDistance) {
-                        // Replace the furthest neighbor with the closer one
+                    } else if (entryDistanceSq < m_distanceQueue.top().first) {
+                        // Replace the worst candidate
                         m_distanceQueue.pop();
                         m_distanceQueue.emplace(entryDistanceSq, entryId);
                         furthestNeighborDistance = m_distanceQueue.top().first;
                     }
                 }
             }
-            m_parents.pop();
-            m_parentsEntry.pop();
         }
     }
 

@@ -10,17 +10,17 @@ int main() {
 
     CreateSpatialIndex::RTreeParams params
     {
-        "/home/serafm/dev/rtee_test_data/T3_COUNTY_continental_mbr_no_points.csv",
         "/home/serafm/dev/rtee_test_data/T1_AREALM_continental_mbr_no_points.csv",
+        "/home/serafm/dev/rtee_test_data/T3_COUNTY_continental_mbr_no_points.csv",
         "/home/serafm/dev/rtee_test_data/knn_queries.csv",
         "/home/serafm/dev/rtee_test_data/range_queries.csv",
     };
 
     // Build 1 Rtree
-    spatial_index.Start(params.filepathA);
+    //spatial_index.Start(params.filepathA);
 
     // Build 2 Rtrees
-    //spatial_index.Start(params.filepathA, params.filepathB);
+    spatial_index.Start(params.filepathA, params.filepathB);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
@@ -30,7 +30,7 @@ int main() {
 
     start = std::chrono::high_resolution_clock::now();
     // Execute NearestN query
-    spatial_index.NearestNeighborsQuery(5, params.nearestQueryFilepath);
+    spatial_index.NearestNeighborsQuery(params.nearestQueryFilepath, 5);
 
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);

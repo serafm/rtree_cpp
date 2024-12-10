@@ -67,7 +67,7 @@ std::vector<float> CreateSpatialIndex::ParseMBRLine(const std::string& line) {
     return mbr;
 }
 
-void CreateSpatialIndex::NearestNeighborsQuery(int n, const std::string& filename) {
+void CreateSpatialIndex::NearestNeighborsQuery(const std::string& filename, int n) {
     rtree::QueryBuilder queryBuilder(m_rtreeA);
     ReadQueryFile(filename);
     for (const auto& point : m_params) {

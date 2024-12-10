@@ -83,7 +83,7 @@ public:
     void Start(const std::string& filepathA, const std::string& filepathB);
     void Start(const std::string& filepath);
 
-    void NearestNeighborsQuery(int n, const std::string& filename);
+    void NearestNeighborsQuery(const std::string& filename, int n);
     void RangeQuery(const std::string& filename);
     void JoinQuery();
 };

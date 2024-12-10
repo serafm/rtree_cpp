@@ -25,12 +25,13 @@ namespace rtree {
         std::stack<int> m_parentsEntry;
 
         /**
-         * @brief Finds the nearest N entries in the R-tree to a given point.
+         * @brief Finds the nearest N entries in the R-tree to a given point using a best-first search strategy.
          *
-         * This method performs a best-first search on the R-tree, maintaining a priority queue
-         * of candidate entries based on their distance to the query point. It explores branches
-         * that are more likely to contain closer neighbors first, pruning others as soon as enough
-         * nearer entries have been identified. This approach ensures that we efficiently find
+         * This method leverages a priority queue (min-heap) of candidate nodes and entries keyed by their
+         * minimum bounding rectangle distance to the query point. Unlike a simple depth-first approach,
+         * we always expand the most promising (closest) node first. As soon as we find at least N neighbors,
+         * we establish a maximum distance threshold, allowing us to prune entire subtrees that cannot yield
+         * closer results. This prioritization and pruning significantly improves the efficiency of retrieving
          * the top N nearest neighbors to the specified point.
          *
          * @param p The query point for which nearest neighbors are sought.
