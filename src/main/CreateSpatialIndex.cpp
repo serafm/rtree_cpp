@@ -23,6 +23,7 @@ rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
     std::cout << "----- rtreeBuilder Spatial Index -----" << std::endl;
 
     rtree::RTreeBuilder rtree;
+    std::vector<rtree::Rectangle> rectangles;
 
     std::ifstream inFile(filepath);
     if (!inFile) {
@@ -30,27 +31,26 @@ rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
         throw std::runtime_error("File cannot be opened");
     }
 
-    std::cout << "\nIndexing rectangles to the tree" << std::endl;
-    LoadRectanglesFromFile(filepath, rtree);
+    std::cout << "\nLoading rectangles from file..." << std::endl;
+    std::string mbr_line;
+    while (std::getline(inFile, mbr_line)) {
+        std::vector<float> mbr = ParseMBRLine(mbr_line);
+        if (mbr.size() == 4) {
+            rectangles.emplace_back(mbr[0], mbr[1], mbr[2], mbr[3]);
+        }
+        else {
+            std::cerr << "Unable to parse line. Wrong format!" << mbr_line << std::endl;
+        }
+    }
+
+    std::cout << "Building R-tree using STR bulk loading" << std::endl;
+    rtree.bulkLoad(rectangles);
 
     std::cout << "Created RTree successfully" << std::endl;
     std::cout << "RTree size: " << rtree.treeSize() << std::endl;
     std::cout << "Number of nodes: " << rtree.numNodes() << std::endl;
 
     return rtree;
-}
-
-void CreateSpatialIndex::LoadRectanglesFromFile(const std::string& filepath, rtree::RTreeBuilder& rtree) {
-    std::ifstream inFile(filepath);
-    std::string mbr_line;
-
-    while (std::getline(inFile, mbr_line)) {
-        std::vector<float> mbr = ParseMBRLine(mbr_line);
-        if (mbr.size() == 4) {
-            rtree::Rectangle rect{mbr[0], mbr[1], mbr[2], mbr[3]};
-            rtree.addEntry(rect);
-        }
-    }
 }
 
 std::vector<float> CreateSpatialIndex::ParseMBRLine(const std::string& line) {

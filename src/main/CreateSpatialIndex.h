@@ -15,18 +15,6 @@ class CreateSpatialIndex {
     rtree::RTreeBuilder m_rtreeB;
 
     /**
-     * @brief Loads rectangle entries from the given file into the specified R-tree.
-     *
-     * This function reads each line of the input file, parses it as a minimum bounding rectangle (MBR),
-     * and inserts the rectangle into the R-tree. Only lines with exactly four floating-point values
-     * (minX, minY, maxX, maxY) are considered valid entries.
-     *
-     * @param filepath The path to the file containing rectangle coordinates.
-     * @param rtree A reference to the RTreeBuilder object into which the rectangles will be inserted.
-     */
-    void LoadRectanglesFromFile(const std::string& filepath, rtree::RTreeBuilder& rtree);
-
-    /**
      * @brief Parses a single line of text into a vector of floating-point values representing an MBR.
      *
      * This function replaces commas with spaces, then tokenizes the line into floating-point numbers.
@@ -35,7 +23,7 @@ class CreateSpatialIndex {
      * @param line A string containing comma- or space-separated values representing rectangle coordinates.
      * @return A vector of floats extracted from the input line.
      */
-    std::vector<float> ParseMBRLine(const std::string& line);
+    static std::vector<float> ParseMBRLine(const std::string& line);
 
     /**
      * @brief Reads query parameters (points or rectangles) from a file into an internal structure.
@@ -78,7 +66,8 @@ public:
      * corresponding R-trees that can be used for spatial queries such as nearest neighbor,
      * range, and join queries.
      *
-     * @param params A structure containing the filepaths and other parameters used to build the R-trees.
+     * @param filepathA A filepath for a tree dataset (coordinates)
+     * @param filepathB A filepath for a tree dataset (coordinates)
      */
     void Start(const std::string& filepathA, const std::string& filepathB);
     void Start(const std::string& filepath);

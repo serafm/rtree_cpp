@@ -17,10 +17,10 @@ int main() {
     };
 
     // Build 1 Rtree
-    //spatial_index.Start(params.filepathA);
+    spatial_index.Start(params.filepathA);
 
     // Build 2 Rtrees
-    spatial_index.Start(params.filepathA, params.filepathB);
+    //spatial_index.Start(params.filepathA, params.filepathB);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
@@ -35,7 +35,7 @@ int main() {
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     std::cout << "Nearest query time taken: " << duration.count() / 1e6 << " milliseconds\n";
-
+    /*
     start = std::chrono::high_resolution_clock::now();
     // Execute Range query
     spatial_index.RangeQuery(params.rangeQueryFilepath);
@@ -52,5 +52,5 @@ int main() {
     duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     std::cout << "Join query time taken: " << duration.count() / 1e6 << " milliseconds\n";
     std::cout << "Join query time taken: " << duration.count() / 1e9 << " seconds\n";
-
+    */
 }

@@ -21,23 +21,6 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * allowed to have fewer to accommodate varying tree sizes.
      */
     static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
-
-    /**
-     * @brief Status value indicating that an entry has been assigned to a node.
-     *
-     * During node splits, entries are either marked as assigned to one of the two new nodes
-     * or remain unassigned until a decision is made.
-     */
-    static constexpr int ENTRY_STATUS_ASSIGNED = 0;
-
-    /**
-     * @brief Status value indicating that an entry has not yet been assigned to a node.
-     *
-     * Used during node splitting operations to track entries that need to be distributed
-     * between the original and the newly created node.
-     */
-    static constexpr int ENTRY_STATUS_UNASSIGNED = 1;
-
     /**
      * @brief A mapping of node IDs to their corresponding node objects.
      *
@@ -45,39 +28,6 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * to specific nodes during insertions, deletions, queries, and tree adjustments.
      */
     std::unordered_map<int, std::shared_ptr<Node>> m_nodeMap{};
-
-    /**
-     * @brief A vector tracking the assignment status of each entry during node splits.
-     *
-     * Each element corresponds to an entry and stores whether it's assigned or unassigned,
-     * guiding the process of distributing entries between two nodes during a split.
-     */
-    std::vector<int8_t> m_entryStatus{};
-
-    /**
-     * @brief A vector holding the initial status of entries when a node is split.
-     *
-     * This vector stores the default or initial status of entries before any assignment
-     * decisions have been made during the splitting process.
-     */
-    std::vector<int8_t> m_initialEntryStatus{};
-
-    /**
-     * @brief A stack of parent node IDs encountered while traversing down the tree.
-     *
-     * When searching for the insertion node, the path is recorded so that, after
-     * insertion at the leaf level, the tree can be adjusted from the bottom up.
-     */
-    std::stack<int> m_parents{};
-
-    /**
-     * @brief A stack of parent entry indexes encountered while traversing down the tree.
-     *
-     * For each parent node in the tree traversal path, this stack stores the index of the
-     * entry that points to the child node we descended into. This enables adjustments
-     * to be made correctly when propagating changes up the tree.
-     */
-    std::stack<int> m_parentsEntry{};
 
     /**
      * @brief The ID of the root node of the R-tree.
@@ -121,14 +71,6 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
     int m_size{};
 
     /**
-     * @brief A stack of node IDs that have been deleted and can be reused.
-     *
-     * Instead of continually incrementing node IDs, deleted node IDs are stored here
-     * for recycling. This reduces the overall range of node IDs used.
-     */
-    std::stack<int> m_deletedNodeIds{};
-
-    /**
      * @brief The maximum number of entries each node can hold.
      *
      * Once a node reaches this limit, it must be split into two nodes.
@@ -152,6 +94,14 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
     int m_entryId = 1;
 
     /**
+     * @brief A unique id for every node created in the tree.
+     *
+     * This ID increments automatically with each new node, ensuring every
+     * node in the R-tree can be uniquely identified.
+     */
+    int m_nextNodeId = 0;
+
+    /**
      * @brief Retrieves a previously unused node ID, reusing deleted node IDs if available.
      *
      * This function manages the node ID space for the R-tree. If there are any
@@ -163,107 +113,65 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
     int getNextNodeId();
 
     /**
-     * @brief Inserts a rectangle into the R-tree at a specified level.
+     * @brief Creates the leaf level of the R-tree from a set of rectangles.
      *
-     * This function performs the insertion logic, locating the appropriate node
-     * for the rectangle and, if necessary, splitting nodes that exceed the maximum
-     * entry limit. After insertion, the tree is adjusted to maintain the R-tree
-     * properties. If the insertion at the root level causes a split, a new root
-     * is created to accommodate the increased height.
+     * This function sorts the rectangles based on their spatial coordinates and
+     * groups them into leaf nodes, ensuring an optimal fill ratio.
      *
-     * @param minX The minimum X-coordinate of the rectangle.
-     * @param minY The minimum Y-coordinate of the rectangle.
-     * @param maxX The maximum X-coordinate of the rectangle.
-     * @param maxY The maximum Y-coordinate of the rectangle.
-     * @param id The entry ID associated with this rectangle.
-     * @param level The tree level at which to insert the rectangle (1 for leaves).
+     * @param rectangles A vector of rectangles to be grouped into leaf nodes.
+     * @param nodeCapacity The maximum number of entries a node can hold.
+     * @return A vector of shared pointers to the created leaf nodes.
      */
-    void add(float minX, float minY, float maxX, float maxY, int id, int level);
+    std::vector<std::shared_ptr<Node>> createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity);
 
     /**
-     * @brief Adjusts the R-tree after an insertion or split to maintain its properties.
+     * @brief Creates the next level of the R-tree from a given set of nodes.
      *
-     * After inserting an entry and possibly splitting a leaf node, this function
-     * propagates changes up the tree. It may reposition entries in parent nodes
-     * to accurately reflect new bounding rectangles or handle higher-level splits.
-     * If a new node is created at the root level, a new root node is formed.
+     * This function groups child nodes into parent nodes, constructing the tree
+     * level by level until only a single root remains.
      *
-     * @param n The node that was modified (leaf or internal).
-     * @param nn An optional newly created node from a split operation.
-     * @return A pointer to the new node if the root was split; otherwise, nullptr.
+     * @param nodes A vector of shared pointers to nodes that need to be grouped.
+     * @param nodeCapacity The maximum number of entries a node can hold.
+     * @return A vector of shared pointers to the newly created parent nodes.
      */
-    std::shared_ptr<Node> adjustTree(std::shared_ptr<Node> n, std::shared_ptr<Node> nn);
+    std::vector<std::shared_ptr<Node>> createNextLevel(std::vector<std::shared_ptr<Node>>& nodes, int nodeCapacity);
 
     /**
-     * @brief Chooses the appropriate node level at which to insert a new entry.
+     * @brief Creates a new internal node with given child nodes.
      *
-     * This function navigates down the R-tree to find the correct node into which
-     * the given rectangle should be inserted. At each level, it selects the subtree
-     * that will require the least enlargement to include the new rectangle. The
-     * process stops when it reaches the specified target level.
+     * This function initializes a new node at the specified level and adds entries
+     * corresponding to its child nodes.
      *
-     * @param minX The minimum X-coordinate of the rectangle.
-     * @param minY The minimum Y-coordinate of the rectangle.
-     * @param maxX The maximum X-coordinate of the rectangle.
-     * @param maxY The maximum Y-coordinate of the rectangle.
-     * @param level The level at which to insert the new entry.
-     * @return A pointer to the node at which the rectangle should be inserted.
+     * @param children A vector of shared pointers to child nodes.
+     * @param level The level of the new node in the R-tree.
+     * @return A shared pointer to the newly created node.
      */
-    std::shared_ptr<Node> chooseNode(float minX, float minY, float maxX, float maxY, int level);
+    std::shared_ptr<Node> createNode(const std::vector<std::shared_ptr<Node>>& children, int level);
 
     /**
-     * @brief Chooses initial seed entries for a node split.
+     * @brief Creates a leaf node containing a subset of rectangles.
      *
-     * When splitting a node, this method identifies "seed" entries to serve as the
-     * first elements in the original and the new node. The chosen seeds aim to maximize
-     * the normalized separation along the X or Y axes, thereby improving the distribution
-     * of entries and reducing overlap.
+     * This function initializes a leaf node and inserts rectangle entries into it.
      *
-     * @param n The node being split.
-     * @param newRectMinX The minimum X-coordinate of the new rectangle.
-     * @param newRectMinY The minimum Y-coordinate of the new rectangle.
-     * @param newRectMaxX The maximum X-coordinate of the new rectangle.
-     * @param newRectMaxY The maximum Y-coordinate of the new rectangle.
-     * @param newId The entry ID of the new rectangle.
-     * @param newNode The newly created node for the split.
+     * @param rectangles A vector of rectangles to be added to the leaf node.
+     * @param start The starting index of the rectangles in the vector.
+     * @param end The ending index (exclusive) of the rectangles in the vector.
+     * @return A shared pointer to the newly created leaf node.
      */
-    void pickSeeds(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId, const std::shared_ptr<Node>& newNode);
-
-    /**
-     * @brief Selects the next entry to assign during a node split.
-     *
-     * After choosing the seed entries, this function determines the best next entry
-     * to place in either the original or the new node. It measures how much each
-     * entry would enlarge the bounding rectangles of both nodes, choosing the entry
-     * that creates the largest difference. This strategy ensures a balanced and
-     * efficient split.
-     *
-     * @param n The original node being split.
-     * @param newNode The newly created node receiving part of the entries.
-     * @return The index of the chosen entry to distribute.
-     */
-    int pickNext(const std::shared_ptr<Node>& n, const std::shared_ptr<Node>& newNode);
-
-    /**
-     * @brief Splits a node that has exceeded its maximum capacity.
-     *
-     * Given a node that cannot accommodate a new entry, this function partitions
-     * its entries between the original node and a newly created node. The goal of
-     * splitting is to minimize overlap and coverage, thus maintaining good query
-     * performance. It uses the "PickSeeds" and "PickNext" heuristics to determine
-     * how entries are distributed.
-     *
-     * @param n The node that needs splitting.
-     * @param newRectMinX The minimum X-coordinate of the new rectangle.
-     * @param newRectMinY The minimum Y-coordinate of the new rectangle.
-     * @param newRectMaxX The maximum X-coordinate of the new rectangle.
-     * @param newRectMaxY The maximum Y-coordinate of the new rectangle.
-     * @param newId The entry ID of the new rectangle.
-     * @return A pointer to the newly created node resulting from the split.
-     */
-    std::shared_ptr<Node> splitNode(const std::shared_ptr<Node>& n, float newRectMinX, float newRectMinY, float newRectMaxX, float newRectMaxY, int newId);
+    std::shared_ptr<Node> createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end);
 
     public:
+
+    /**
+    * @brief Bulk loads a set of rectangles (a given dataset) into the R-tree.
+    *
+    * This function constructs the R-tree from a given set of rectangles using a
+    * bottom-up approach. It first creates the leaf level, then iteratively builds
+    * higher levels until a single root node remains.
+    *
+    * @param rectangles A vector of rectangles to be inserted into the R-tree.
+    */
+    void bulkLoad(std::vector<Rectangle>& rectangles);
 
     /**
      * @brief Default constructor for RTreeBuilder.
@@ -287,17 +195,6 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * @throws std::out_of_range If the node ID is not found in the node map.
      */
     std::shared_ptr<Node> getNode(int id);
-
-    /**
-     * @brief Adds a new entry (rectangle) to the R-tree.
-     *
-     * This function inserts a rectangle into the R-tree, adjusting internal nodes
-     * and performing splits as needed. The rectangle is represented by its minimum
-     * and maximum coordinates and is assigned a unique entry ID.
-     *
-     * @param r The rectangle to be inserted.
-     */
-    void addEntry(const Rectangle & r);
 
     /**
      * @brief Returns the total number of entries (rectangles) stored in the R-tree.
