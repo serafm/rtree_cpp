@@ -5,28 +5,22 @@
 
 #include <string>
 #include <vector>
+#include "../rtree/RTreeBulkLoadBuilder.h"
 #include "../rtree/RTreeBuilder.h"
+#include "../rtree/query/QueryBuilder.h"
 
 class CreateSpatialIndex {
 
-    // Instance members
+    using RTreePtr = rtree::RTreeBulkLoadBuilder;
     std::vector<std::vector<float>> m_params;
-    rtree::RTreeBuilder m_rtreeA;
-    rtree::RTreeBuilder m_rtreeB;
+    RTreePtr m_rtreeA;
+    RTreePtr m_rtreeB;
+    //rtree::RTreeBuilder m_rtreeA;
+    //rtree::RTreeBuilder m_rtreeB;
+    std::vector<rtree::Rectangle> m_rectangles;
 
     /**
-     * @brief Parses a single line of text into a vector of floating-point values representing an MBR.
-     *
-     * This function replaces commas with spaces, then tokenizes the line into floating-point numbers.
-     * If the returned vector contains exactly four values, it represents a valid rectangle (minX, minY, maxX, maxY).
-     *
-     * @param line A string containing comma- or space-separated values representing rectangle coordinates.
-     * @return A vector of floats extracted from the input line.
-     */
-    static std::vector<float> ParseMBRLine(const std::string& line);
-
-    /**
-     * @brief Reads query parameters (points or rectangles) from a file into an internal structure.
+     * @brief Reads knn query parameters (rectangles) from a file into an internal structure.
      *
      * This function opens the specified file, parses each line into a vector of floating-point values,
      * and stores them for later use in queries. Each non-empty line is expected to contain between two
@@ -34,29 +28,55 @@ class CreateSpatialIndex {
      *
      * @param filename The path to the file containing query parameters.
      */
-    void ReadQueryFile(const std::string& filename);
+    void ReadKNNQueryFile(const std::string& filename);
+
+    /**
+     * @brief Reads range query parameters (rectangles) from a file into an internal structure.
+     *
+     * This function opens the specified file, parses each line into a vector of floating-point values,
+     * and stores them for later use in queries. Each non-empty line is expected to contain between two
+     * and four floating-point values, depending on whether the query is for points or rectangles.
+     *
+     * @param filename The path to the file containing query parameters.
+     */
+    void ReadRangeQueryFile(const std::string& filename);
+
+    /**
+     * @brief Constructs an R-tree from the rectangles found in the provided file.
+     *
+     * This function reads spatial data (rectangles) from memory,
+     * and returns the fully constructed R-tree builder object using the STR bulk load approach.
+     * It prints tree size and number of nodes to the console.
+     *
+     * @return A fully constructed RTreeBulkLoadBuilder instance.
+     * @throws std::runtime_error If the file cannot be opened.
+     */
+    rtree::RTreeBulkLoadBuilder BulkLoadTree();
 
     /**
      * @brief Constructs an R-tree from the rectangles found in the provided file.
      *
      * This function reads spatial data (rectangles) from the given file, inserts them into an R-tree,
-     * and returns the fully constructed R-tree builder object. It prints diagnostics such as tree size
-     * and number of nodes to the console.
+     * and returns the fully constructed R-tree builder object.
+     * It prints diagnostics such as tree size and number of nodes to the console.
      *
-     * @param filepath The path to the file containing rectangle coordinates.
      * @return A fully constructed RTreeBuilder instance.
      * @throws std::runtime_error If the file cannot be opened.
      */
     rtree::RTreeBuilder BuildTree(const std::string& filepath);
 
 public:
-    CreateSpatialIndex() = default;
+    explicit CreateSpatialIndex() = default;
 
     struct RTreeParams {
         std::string filepathA;
         std::string filepathB;
         std::string nearestQueryFilepath;
-        std::string rangeQueryFilepath;
+        std::string rangeQuery1;
+        std::string rangeQuery2;
+        std::string rangeQuery3;
+        std::string rangeQuery4;
+        std::string rangeQuery5;
     };
 
     /**
@@ -69,8 +89,13 @@ public:
      * @param filepathA A filepath for a tree dataset (coordinates)
      * @param filepathB A filepath for a tree dataset (coordinates)
      */
+    void StartBulkLoad(const std::string& filepathA, const std::string& filepathB);
+    void StartBulkLoad(const std::string &filepath, RTreePtr& rtree);
+
     void Start(const std::string& filepathA, const std::string& filepathB);
-    void Start(const std::string& filepath);
+    void Start(const std::string &filepath);
+
+    void LoadData(const std::string &filepath);
 
     void NearestNeighborsQuery(const std::string& filename, int n);
     void RangeQuery(const std::string& filename);

@@ -6,12 +6,10 @@
 #include <queue>
 #include <vector>
 
-#include "RTreeBuilder.h"
-
 namespace rtree {
 
-    QueryBuilder::QueryBuilder(RTreeBuilder& rtreeA) : m_rtreeA(rtreeA), m_rtreeB({}) {}
-    QueryBuilder::QueryBuilder(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) : m_rtreeA(rtreeA), m_rtreeB(rtreeB) {}
+    QueryBuilder::QueryBuilder(RTreePtr &rtreeA, RTreePtr &rtreeB) : m_rtreeA(rtreeA), m_rtreeB(rtreeB) {}
+    QueryBuilder::QueryBuilder(RTreePtr &rtreeA) : m_rtreeA(rtreeA) {}
 
     void QueryBuilder::Range(Rectangle& range) {
         contains(range);
@@ -24,16 +22,16 @@ namespace rtree {
     }
 
     void QueryBuilder::Join() {
-        join(m_rtreeA, m_rtreeB);
+        join();
         printJoinQuery();
     }
 
-    void QueryBuilder::join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) {
+    void QueryBuilder::join() {
         m_joinRectangles.clear(); // Clear previous join results to prepare for a fresh spatial join
 
         // Start from the root nodes of both R-trees
-        auto rootA = rtreeA.getNode(rtreeA.getRootNodeId());
-        auto rootB = rtreeB.getNode(rtreeB.getRootNodeId());
+        auto rootA = m_rtreeA.getNode(m_rtreeA.getRootNodeId());
+        auto rootB = m_rtreeB.getNode(m_rtreeB.getRootNodeId());
 
         // Stack for iterative traversal of node pairs from both R-trees
         std::stack<std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>> nodePairs;
@@ -72,9 +70,9 @@ namespace rtree {
             else if (!nodeA->isLeaf() && !nodeB->isLeaf()) {
                 // Compare each child node of nodeA with each child node of nodeB
                 for (int i = 0; i < nodeA->entryCount; i++) {
-                    auto childA = rtreeA.getNode(nodeA->ids[i]); // Get child node from R-tree A
+                    auto childA = m_rtreeA.getNode(nodeA->ids[i]); // Get child node from R-tree A
                     for (int j = 0; j < nodeB->entryCount; j++) {
-                        auto childB = rtreeB.getNode(nodeB->ids[j]); // Get child node from R-tree B
+                        auto childB = m_rtreeB.getNode(nodeB->ids[j]); // Get child node from R-tree B
 
                         // Push the pair onto the nodePairs if their bounding boxes intersect
                         if (Rectangle::intersects(
@@ -89,7 +87,7 @@ namespace rtree {
             else if (!nodeA->isLeaf() && nodeB->isLeaf()) {
                 // Compare each child node of nodeA with the leaf nodeB
                 for (int i = 0; i < nodeA->entryCount; i++) {
-                    auto childA = rtreeA.getNode(nodeA->ids[i]); // Get child node from R-tree A
+                    auto childA = m_rtreeA.getNode(nodeA->ids[i]); // Get child node from R-tree A
                     // Push the pair onto the nodePairs if their bounding boxes intersect
                     if (Rectangle::intersects(
                             childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
@@ -102,7 +100,7 @@ namespace rtree {
             else {
                 // Compare the leaf nodeA with each child node of nodeB
                 for (int j = 0; j < nodeB->entryCount; j++) {
-                    auto childB = rtreeB.getNode(nodeB->ids[j]); // Get child node from R-tree B
+                    auto childB = m_rtreeB.getNode(nodeB->ids[j]); // Get child node from R-tree B
                     // Push the pair onto the nodePairs if their bounding boxes intersect
                     if (Rectangle::intersects(
                             nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,

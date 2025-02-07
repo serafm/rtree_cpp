@@ -1,6 +1,7 @@
 #include "CreateSpatialIndex.h"
 
-#include <algorithm>
+#include <filesystem>
+#include <chrono>
 #include <fstream>
 #include <future>
 #include <iostream>
@@ -8,22 +9,52 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "../rtree/QueryBuilder.h"
 
+/*
 void CreateSpatialIndex::Start(const std::string& filepathA, const std::string& filepathB) {
-    m_rtreeA = BuildTree(filepathA);
-    m_rtreeB = BuildTree(filepathB);
+    LoadData(filepathA);
+    m_rtreeA = BuildTree();
+    LoadData(filepathB);
+    m_rtreeB = BuildTree();
 }
 
 void CreateSpatialIndex::Start(const std::string& filepathA) {
-    m_rtreeA = BuildTree(filepathA);
+    m_rtreeA = BuildTree();
+}
+*/
+
+void CreateSpatialIndex::StartBulkLoad(const std::string& filepathA, const std::string& filepathB) {
+    StartBulkLoad(filepathA, m_rtreeA);
+    if (!filepathB.empty()) {
+        StartBulkLoad(filepathB, m_rtreeB);
+    }
 }
 
-rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
-    std::cout << "----- rtreeBuilder Spatial Index -----" << std::endl;
+void CreateSpatialIndex::StartBulkLoad(const std::string& filepath, RTreePtr& rtree) {
+    auto start = std::chrono::high_resolution_clock::now();
 
-    rtree::RTreeBuilder rtree;
-    std::vector<rtree::Rectangle> rectangles;
+    LoadData(filepath);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << "Time: " << duration.count() / 1e9 << " seconds\n";
+
+    start = std::chrono::high_resolution_clock::now();
+
+    rtree = BulkLoadTree();
+
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << "Time: " << duration.count() / 1e9 << " seconds\n";
+
+}
+
+void CreateSpatialIndex::LoadData(const std::string &filepath) {
+    std::cout << "\n ----- R-Tree Spatial Index -----" << std::endl;
+    m_rectangles.clear();
+
+    std::filesystem::path pathObj(filepath);
+    std::cout << "\nFilename: " << pathObj.filename() << std::endl;
 
     std::ifstream inFile(filepath);
     if (!inFile) {
@@ -34,17 +65,46 @@ rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
     std::cout << "\nLoading rectangles from file..." << std::endl;
     std::string mbr_line;
     while (std::getline(inFile, mbr_line)) {
-        std::vector<float> mbr = ParseMBRLine(mbr_line);
-        if (mbr.size() == 4) {
-            rectangles.emplace_back(mbr[0], mbr[1], mbr[2], mbr[3]);
-        }
-        else {
-            std::cerr << "Unable to parse line. Wrong format!" << mbr_line << std::endl;
+        std::istringstream iss(mbr_line);
+        float x1, y1, x2, y2;
+
+        char comma; // To ignore the commas
+        if (iss >> x1 >> comma >> y1 >> comma >> x2 >> comma >> y2) {
+            m_rectangles.emplace_back(x1, y1, x2, y2);
+        } else {
+            std::cerr << "Unable to parse line: " << mbr_line << std::endl;
+            std::exit(0);
         }
     }
+    std::cout << "Dataset loaded!" << std::endl;
+}
 
-    std::cout << "Building R-tree using STR bulk loading" << std::endl;
-    rtree.bulkLoad(rectangles);
+rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
+    std::cout << "----- rtreeBuilder Spatial Index -----" << std::endl;
+
+    rtree::RTreeBuilder rtree;
+
+    std::ifstream inFile(filepath);
+    if (!inFile) {
+        std::cerr << "Unable to open file " << filepath << std::endl;
+        throw std::runtime_error("File cannot be opened");
+    }
+
+    std::cout << "\nIndexing rectangles to the tree" << std::endl;
+    std::string mbr_line;
+    while (std::getline(inFile, mbr_line)) {
+        std::istringstream iss(mbr_line);
+        float x1, y1, x2, y2;
+
+        char comma; // To ignore the commas
+        if (iss >> x1 >> comma >> y1 >> comma >> x2 >> comma >> y2) {
+            rtree::Rectangle rect{x1, y1, x2, y2};
+            rtree.addEntry(rect);
+        } else {
+            std::cerr << "Unable to parse line: " << mbr_line << std::endl;
+            std::exit(0);
+        }
+    }
 
     std::cout << "Created RTree successfully" << std::endl;
     std::cout << "RTree size: " << rtree.treeSize() << std::endl;
@@ -53,23 +113,27 @@ rtree::RTreeBuilder CreateSpatialIndex::BuildTree(const std::string& filepath) {
     return rtree;
 }
 
-std::vector<float> CreateSpatialIndex::ParseMBRLine(const std::string& line) {
-    std::string modified_line = line;
-    std::replace(modified_line.begin(), modified_line.end(), ',', ' ');
-    std::istringstream iss(modified_line);
-    std::vector<float> mbr;
-    std::string num;
+rtree::RTreeBulkLoadBuilder CreateSpatialIndex::BulkLoadTree() {
+    rtree::RTreeBulkLoadBuilder rtree;
 
-    while (iss >> num) {
-        mbr.push_back(stof(num));
-    }
+    std::cout << "Building R-tree using STR bulk loading..." << std::endl;
+    rtree.bulkLoad(m_rectangles);
 
-    return mbr;
+    std::cout << "Created RTree successfully" << std::endl;
+    std::cout << "RTree size: " << rtree.treeSize() << std::endl;
+    std::cout << "Number of nodes: " << rtree.numNodes() << std::endl;
+
+    return rtree;
 }
 
 void CreateSpatialIndex::NearestNeighborsQuery(const std::string& filename, int n) {
+    std::filesystem::path pathObj(filename);
+    std::cout << "\nFilename: " << pathObj.filename() << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     rtree::QueryBuilder queryBuilder(m_rtreeA);
-    ReadQueryFile(filename);
+    ReadKNNQueryFile(filename);
     for (const auto& point : m_params) {
         if (point.size() == 2) {
             rtree::Point p{point[0], point[1]};
@@ -78,11 +142,19 @@ void CreateSpatialIndex::NearestNeighborsQuery(const std::string& filename, int 
             std::cerr << "Invalid point for Nearest neighbors query.\n";
         }
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << "KNN query time: " << duration.count() / 1e9 << " seconds\n";
 }
 
 void CreateSpatialIndex::RangeQuery(const std::string& filename) {
+    std::filesystem::path pathObj(filename);
+    std::cout << "\nFilename: " << pathObj.filename() << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+
     rtree::QueryBuilder queryBuilder(m_rtreeA);
-    ReadQueryFile(filename);
+    ReadRangeQueryFile(filename);
     for (const auto& rect : m_params) {
         if (rect.size() == 4) {
             rtree::Rectangle range{rect[0], rect[1], rect[2], rect[3]};
@@ -91,15 +163,26 @@ void CreateSpatialIndex::RangeQuery(const std::string& filename) {
             std::cerr << "Invalid rectangle for Range query.\n";
         }
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << "Range query time: " << duration.count() / 1e9 << " seconds\n";
 }
 
 void CreateSpatialIndex::JoinQuery() {
+    std::cout << "\nRunning join query" << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     rtree::QueryBuilder queryBuilder(m_rtreeA, m_rtreeB);
     queryBuilder.Join();
 
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::cout << "Join query time: " << duration.count() / 1e9 << " seconds\n";
 }
 
-void CreateSpatialIndex::ReadQueryFile(const std::string& filename) {
+void CreateSpatialIndex::ReadRangeQueryFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filename << "\n";
@@ -118,6 +201,32 @@ void CreateSpatialIndex::ReadQueryFile(const std::string& filename) {
             if (paramStream.peek() == ',') paramStream.ignore();
         }
         m_params.push_back(paramRow);
+    }
+    file.close();
+}
+
+void CreateSpatialIndex::ReadKNNQueryFile(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filename << "\n";
+        return;
+    }
+
+    m_params.clear();
+    std::string line;
+
+    while (std::getline(file, line) && !line.empty()) {
+        std::istringstream paramStream(line);
+        float x1, y1, x2, y2;
+        char comma;
+
+        if (paramStream >> x1 >> y1 >> comma >> x2 >> y2) {
+            float centerX = (x1 + x2) / 2.0f;
+            float centerY = (y1 + y2) / 2.0f;
+            m_params.push_back({centerX, centerY});
+        } else {
+            std::cerr << "Invalid line format: " << line << "\n";
+        }
     }
     file.close();
 }

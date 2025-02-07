@@ -9,8 +9,6 @@
 
 namespace rtree {
 
-    class QueryBuilder;
-
     class Node {
 
         public:
