@@ -1,4 +1,4 @@
-#include "RTreeBuilder.h"
+#include "RTreeBulkLoad.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6,13 +6,13 @@
 
 namespace rtree {
 
-    RTreeBuilder::RTreeBuilder() :
+    RTreeBulkLoad::RTreeBulkLoad() :
         m_maxNodeEntries(DEFAULT_MAX_NODE_ENTRIES),
         m_minNodeEntries(DEFAULT_MIN_NODE_ENTRIES)
     {
     }
 
-    void RTreeBuilder::bulkLoad(std::vector<Rectangle>& rectangles) {
+    void RTreeBulkLoad::bulkLoad(std::vector<Rectangle>& rectangles) {
         // Clear existing tree
         m_nodeMap.clear();
         m_size = 0;
@@ -42,7 +42,7 @@ namespace rtree {
         m_treeHeight = currentHeight + 1;
     }
 
-    std::vector<std::shared_ptr<Node>> RTreeBuilder::createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity) {
+    std::vector<std::shared_ptr<Node>> RTreeBulkLoad::createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity) {
         std::vector<std::shared_ptr<Node>> leafNodes;
 
         // Sort by x coordinate
@@ -75,7 +75,7 @@ namespace rtree {
         return leafNodes;
     }
 
-    std::vector<std::shared_ptr<Node>> RTreeBuilder::createNextLevel(std::vector<std::shared_ptr<Node>>& nodes, int nodeCapacity) {
+    std::vector<std::shared_ptr<Node>> RTreeBulkLoad::createNextLevel(std::vector<std::shared_ptr<Node>>& nodes, int nodeCapacity) {
         std::vector<std::shared_ptr<Node>> parentNodes;
 
         // Sort nodes by x coordinate of their MBR
@@ -96,7 +96,7 @@ namespace rtree {
         return parentNodes;
     }
 
-    std::shared_ptr<Node> RTreeBuilder::createNode(const std::vector<std::shared_ptr<Node>>& children, int level) {
+    std::shared_ptr<Node> RTreeBulkLoad::createNode(const std::vector<std::shared_ptr<Node>>& children, int level) {
         auto node = std::make_shared<Node>(getNextNodeId(), level);
 
         for (const auto& child : children) {
@@ -106,7 +106,7 @@ namespace rtree {
         return node;
     }
 
-    std::shared_ptr<Node> RTreeBuilder::createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end) {
+    std::shared_ptr<Node> RTreeBulkLoad::createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end) {
         auto node = std::make_shared<Node>(getNextNodeId(), 1);
 
         for (int i = start; i < end; i++) {
@@ -117,23 +117,23 @@ namespace rtree {
         return node;
     }
 
-    int RTreeBuilder::getNextNodeId() {
+    int RTreeBulkLoad::getNextNodeId() {
         return m_nextNodeId++;
     }
 
-    std::shared_ptr<Node> RTreeBuilder::getNode(int id) {
+    std::shared_ptr<Node> RTreeBulkLoad::getNode(int id) {
         return m_nodeMap.at(id);
     }
 
-    int RTreeBuilder::treeSize() const {
+    int RTreeBulkLoad::treeSize() const {
         return m_size;
     }
 
-    int RTreeBuilder::numNodes() const {
+    int RTreeBulkLoad::numNodes() const {
         return m_nodeMap.size();
     }
 
-    int RTreeBuilder::getRootNodeId() const {
+    int RTreeBulkLoad::getRootNodeId() const {
         return m_rootNodeId;
     }
 

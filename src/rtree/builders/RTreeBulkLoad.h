@@ -1,18 +1,17 @@
 #pragma once
 #include <memory>
-#include <stack>
 #include <unordered_map>
 #include <vector>
 
-#include "Node.h"
-#include "Rectangle.h"
+#include "../structures/Node.h"
+#include "../structures/Rectangle.h"
 
-#ifndef RTREEBUILDER_H
-#define RTREEBUILDER_H
+#ifndef RTREEBULKLOAD_H
+#define RTREEBULKLOAD_H
 
 namespace rtree {
 
-class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
+class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
 
     /**
      * @brief The default minimum number of entries per node in the R-tree.
@@ -181,7 +180,7 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
      * counts are used, and internal bookkeeping data structures (e.g., status arrays,
      * node maps) are prepared for later insertions.
      */
-    RTreeBuilder();
+    RTreeBulkLoad();
 
     /**
      * @brief Retrieves a node by its ID.
@@ -224,6 +223,6 @@ class RTreeBuilder: public std::enable_shared_from_this<RTreeBuilder>{
     int getRootNodeId() const;
 };
 
-} // spatialindex
+} // rtree
 
-#endif //RTREEBUILDER_H
+#endif //RTREEBULKLOAD_H

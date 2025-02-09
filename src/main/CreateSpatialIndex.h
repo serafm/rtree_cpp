@@ -5,14 +5,15 @@
 
 #include <string>
 #include <vector>
-#include "../rtree/RTreeBuilder.h"
+#include "../rtree/builders/RTreeBulkLoad.h"
+#include "../rtree/structures/Rectangle.h"
 
 class CreateSpatialIndex {
 
     // Instance members
     std::vector<std::vector<float>> m_params;
-    rtree::RTreeBuilder m_rtreeA;
-    rtree::RTreeBuilder m_rtreeB;
+    rtree::RTreeBulkLoad m_rtreeA;
+    rtree::RTreeBulkLoad m_rtreeB;
 
     /**
      * @brief Parses a single line of text into a vector of floating-point values representing an MBR.
@@ -34,7 +35,19 @@ class CreateSpatialIndex {
      *
      * @param filename The path to the file containing query parameters.
      */
-    void ReadQueryFile(const std::string& filename);
+    void ReadRangeQueryFile(const std::string& filename);
+
+    /**
+     * @brief Reads K-nearest neighbors (KNN) query parameters from a file into an internal structure.
+     *
+     * This function opens the specified file, parses each line into a pair of floating-point values
+     * representing the center of a query region, and stores them for use in KNN queries. Each line is
+     * expected to contain four floating-point values separated by a comma, defining the bounding box of
+     * a query region. The function computes the center of this region and stores it as the query point.
+     *
+     * @param filename The path to the file containing KNN query parameters.
+     */
+    void ReadKNNQueryFile(const std::string& filename);
 
     /**
      * @brief Constructs an R-tree from the rectangles found in the provided file.
@@ -47,7 +60,21 @@ class CreateSpatialIndex {
      * @return A fully constructed RTreeBuilder instance.
      * @throws std::runtime_error If the file cannot be opened.
      */
-    rtree::RTreeBuilder BuildTree(const std::string& filepath);
+    rtree::RTreeBulkLoad BuildTree(const std::string& filepath);
+
+    /**
+     * @brief Loads spatial data from a file into a vector of rectangles.
+     *
+     * This function reads a file containing rectangle coordinates and populates a vector with
+     * `rtree::Rectangle` objects. Each line in the file is expected to contain four floating-point
+     * values separated by a comma, representing the coordinates (x1, y1, x2, y2) of a rectangle.
+     * If a line cannot be parsed correctly, an error message is displayed, and the program exits.
+     *
+     * @param filepath The path to the file containing rectangle data.
+     * @param rectangles A reference to a vector that will be populated with the loaded rectangles.
+     * @throws std::runtime_error If the file cannot be opened.
+     */
+    void LoadData(const std::string &filepath, std::vector<rtree::Rectangle>& rectangles);
 
 public:
     CreateSpatialIndex() = default;
