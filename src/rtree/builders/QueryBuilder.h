@@ -8,16 +8,17 @@
 #include <stack>
 #include <vector>
 
-#include "Point.h"
-#include "RTreeBuilder.h"
-#include "Rectangle.h"
+#include "../structures/Point.h"
+#include "../builders//RTreeBulkLoad.h"
+#include "../structures/Rectangle.h"
+#include "../structures/Node.h"
 
 namespace rtree {
 
     class QueryBuilder {
 
-        RTreeBuilder m_rtreeA;
-        RTreeBuilder m_rtreeB;
+        RTreeBulkLoad m_rtreeA;
+        RTreeBulkLoad m_rtreeB;
         std::vector<int> m_ids;
         std::map<int, std::vector<int>> m_joinRectangles;
         std::priority_queue<std::pair<float, int>> m_distanceQueue;
@@ -64,7 +65,7 @@ namespace rtree {
          * @param rtreeA The first R-tree builder instance to join.
          * @param rtreeB The second R-tree builder instance to join.
          */
-        void join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB);
+        void join(RTreeBulkLoad& rtreeA, RTreeBulkLoad& rtreeB);
 
         /**
          * @brief Outputs the nearest neighbor search results for a given point.
@@ -100,8 +101,8 @@ namespace rtree {
 
         public:
 
-        QueryBuilder(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB);
-        explicit QueryBuilder(RTreeBuilder& rtreeA);
+        QueryBuilder(RTreeBulkLoad& rtreeA, RTreeBulkLoad& rtreeB);
+        explicit QueryBuilder(RTreeBulkLoad& rtreeA);
         void Range(Rectangle& range);
         void NearestNeighbors(Point& p, int count);
         void Join();

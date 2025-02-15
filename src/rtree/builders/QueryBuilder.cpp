@@ -6,29 +6,29 @@
 #include <queue>
 #include <vector>
 
-#include "RTreeBuilder.h"
+#include "RTreeBulkLoad.h"
 
 namespace rtree {
 
-    QueryBuilder::QueryBuilder(RTreeBuilder& rtreeA) : m_rtreeA(rtreeA), m_rtreeB({}) {}
-    QueryBuilder::QueryBuilder(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) : m_rtreeA(rtreeA), m_rtreeB(rtreeB) {}
+    QueryBuilder::QueryBuilder(RTreeBulkLoad& rtreeA) : m_rtreeA(rtreeA), m_rtreeB({}) {}
+    QueryBuilder::QueryBuilder(RTreeBulkLoad& rtreeA, RTreeBulkLoad& rtreeB) : m_rtreeA(rtreeA), m_rtreeB(rtreeB) {}
 
     void QueryBuilder::Range(Rectangle& range) {
         contains(range);
-        printRangeQuery(range, m_ids);
+        //printRangeQuery(range, m_ids);
     }
 
     void QueryBuilder::NearestNeighbors(Point& p, int count) {
         nearestN(p, count);
-        printNearestNeighbors(p, m_distanceQueue);
+        //printNearestNeighbors(p, m_distanceQueue);
     }
 
     void QueryBuilder::Join() {
         join(m_rtreeA, m_rtreeB);
-        printJoinQuery();
+        //printJoinQuery();
     }
 
-    void QueryBuilder::join(RTreeBuilder& rtreeA, RTreeBuilder& rtreeB) {
+    void QueryBuilder::join(RTreeBulkLoad& rtreeA, RTreeBulkLoad& rtreeB) {
         m_joinRectangles.clear(); // Clear previous join results to prepare for a fresh spatial join
 
         // Start from the root nodes of both R-trees

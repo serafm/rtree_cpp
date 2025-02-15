@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Node.h"
-#include "Rectangle.h"
+#include "../structures/Node.h"
+#include "../structures/Rectangle.h"
 
 #ifndef RTREEBUILDER_H
 #define RTREEBUILDER_H

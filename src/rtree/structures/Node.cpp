@@ -1,6 +1,6 @@
 #include "Node.h"
 
-#include "RTreeBuilder.h"
+#include "../builders/RTreeBulkLoad.h"
 
 namespace rtree {
 
@@ -8,19 +8,19 @@ namespace rtree {
     : nodeId(id),
     level(level)
     {
-        entriesMinX = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMinY = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxX = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxY = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        ids = std::vector<int>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMinX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMinY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMaxX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMaxY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        ids = std::vector<int>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
     }
 
     Node::Node() {
-        entriesMinX = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMinY = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxX = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxY = std::vector<float>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
-        ids = std::vector<int>(RTreeBuilder::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMinX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMinY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMaxX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        entriesMaxY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        ids = std::vector<int>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
     }
 
     Node::~Node() = default;
