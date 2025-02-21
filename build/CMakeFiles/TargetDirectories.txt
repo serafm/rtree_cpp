@@ -1,3 +1,0 @@
-/home/serafm/dev/rtree_cpp/build/CMakeFiles/rtree_cpp_v2.dir
-/home/serafm/dev/rtree_cpp/build/CMakeFiles/edit_cache.dir
-/home/serafm/dev/rtree_cpp/build/CMakeFiles/rebuild_cache.dir

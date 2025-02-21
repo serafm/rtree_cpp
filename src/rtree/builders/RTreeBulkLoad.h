@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -14,13 +15,6 @@ namespace rtree {
 class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
 
     /**
-     * @brief The default minimum number of entries per node in the R-tree.
-     *
-     * Nodes must have at least this many entries, except for the root node which is
-     * allowed to have fewer to accommodate varying tree sizes.
-     */
-    static constexpr int DEFAULT_MIN_NODE_ENTRIES = 20;
-    /**
      * @brief A mapping of node IDs to their corresponding node objects.
      *
      * This hash map allows quick lookups of nodes by their ID, facilitating fast access
@@ -34,7 +28,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * This value identifies the current root node. As the tree grows and splits occur,
      * new root nodes may be created with different node IDs, updating this value accordingly.
      */
-    int m_rootNodeId = 1;
+    int m_rootNodeId{};
 
     /**
      * @brief Tracks the highest node ID used so far.
@@ -43,15 +37,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * are reused, this value ensures that newly created nodes still receive unique,
      * incrementally increasing IDs.
      */
-    int m_highestUsedNodeId = m_rootNodeId;
-
-    /**
-     * @brief The current height of the R-tree.
-     *
-     * The root node is at level m_treeHeight, and leaves are at level 1. As nodes split
-     * and a new root is created, this value may increase.
-     */
-    int m_treeHeight = 1;
+    int m_highestUsedNodeId{};
 
     /**
      * @brief A pointer to the root node of the R-tree.
@@ -67,7 +53,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * This count increases as entries are inserted. It can be used to determine the
      * overall size of the dataset stored in the tree.
      */
-    int m_size{};
+    int m_totalRectangles{};
 
     /**
      * @brief The maximum number of entries each node can hold.
@@ -98,7 +84,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * This ID increments automatically with each new node, ensuring every
      * node in the R-tree can be uniquely identified.
      */
-    int m_nextNodeId = 0;
+    int m_nextNodeId{};
 
     /**
      * @brief Retrieves a previously unused node ID, reusing deleted node IDs if available.
@@ -145,7 +131,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * @param level The level of the new node in the R-tree.
      * @return A shared pointer to the newly created node.
      */
-    std::shared_ptr<Node> createNode(const std::vector<std::shared_ptr<Node>>& children, int level);
+    std::shared_ptr<Node> createNode(std::vector<std::shared_ptr<Node>>& children, int level);
 
     /**
      * @brief Creates a leaf node containing a subset of rectangles.
@@ -172,6 +158,18 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
     */
     void bulkLoad(std::vector<Rectangle>& rectangles);
 
+    void range(const Rectangle& range);
+
+    void nearestN(const Point &p, const int count);
+
+    void getLeafs(int nodeId, std::vector<int>& leafs);
+
+    static inline bool intersects(float rangeMinX, float rangeMinY, float rangeMaxX, float rangeMaxY,
+                               float rectMinX, float rectMinY, float rectMaxX, float rectMaxY) {
+        return !(rectMaxX < rangeMinX || rectMinX > rangeMaxX ||
+                 rectMaxY < rangeMinY || rectMinY > rangeMaxY);
+    }
+
     /**
      * @brief Default constructor for RTreeBuilder.
      *
@@ -180,7 +178,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * counts are used, and internal bookkeeping data structures (e.g., status arrays,
      * node maps) are prepared for later insertions.
      */
-    RTreeBulkLoad();
+    RTreeBulkLoad(int capacity);
 
     /**
      * @brief Retrieves a node by its ID.
@@ -203,6 +201,14 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
     int treeSize() const;
 
     /**
+     * @brief The current height of the R-tree.
+     *
+     * The root node is at level m_treeHeight, and leaves are at level 1. As nodes split
+     * and a new root is created, this value may increase.
+     */
+    int treeHeight{};
+
+    /**
      * @brief Returns the total number of nodes in the R-tree.
      *
      * This function returns the number of nodes currently present in the R-tree,
@@ -218,7 +224,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * When a node tries to accommodate more than this limit, it must be split,
      * distributing entries between the original and a newly created node.
      */
-    static constexpr int DEFAULT_MAX_NODE_ENTRIES = 50;
+    const int m_capacity{};
 
     int getRootNodeId() const;
 };

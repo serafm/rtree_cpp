@@ -10,12 +10,11 @@ namespace rtree {
 
     class Rectangle {
     public:
-        float minX;
-        float minY;
-        float maxX;
-        float maxY;
-
-        Rectangle();
+        float minX{};
+        float minY{};
+        float maxX{};
+        float maxY{};
+        int id{};
 
         /**
        * Constructor.
@@ -25,6 +24,8 @@ namespace rtree {
            * @param x2 coordinate of the opposite corner
            * @param y2 (see x2)
        */
+        Rectangle(float x1, float y1, float x2, float y2, int id);
+
         Rectangle(float x1, float y1, float x2, float y2);
 
         /**
@@ -52,10 +53,22 @@ namespace rtree {
         * @param r2MaxX maximum X coordinate of rectangle 2
         * @param r2MaxY maximum Y coordinate of rectangle 2
         *
-        * @return true if r1 intersects r2, false otherwise.
+        * @return true if rectangle intersects range, false otherwise.
         */
-        static bool intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
-                        float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
+        [[nodiscard]] bool intersects(float rangeMinX, float rangeMinY, float rangeMaxX, float rangeMaxY) const {
+            return maxX >= rangeMinX && minX <= rangeMaxX && maxY >= rangeMinY && minY <= rangeMaxY;
+        }
+
+        /*static bool intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+                                float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
+            return r1MaxX >= r2MinX && r1MinX <= r2MaxX && r1MaxY >= r2MinY && r1MinY <= r2MaxY;
+        }
+        */
+        static inline bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+                                     float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
+            return r1MaxX >= r2MaxX && r1MinX <= r2MinX && r1MaxY >= r2MaxY && r1MinY <= r2MinY;
+        }
+
 
         /**
          * Determine whether if r1 rectangle contains r2 rectangle
@@ -71,8 +84,8 @@ namespace rtree {
          *
          * @return true if r1 contains r2, false otherwise.
          */
-        static bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
-                                 float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);
+        /*static bool contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+                                 float r2MinX, float r2MinY, float r2MaxX, float r2MaxY);*/
 
         /**
             * Return the distance between a rectangle and a point.
@@ -87,7 +100,13 @@ namespace rtree {
             *
             * @return distance between this rectangle and the passed point.
         */
-        static float distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY);
+        static inline float distanceSq(const float minX, const float minY,
+                                        const float maxX, const float maxY,
+                                        const float x, const float y) {
+            float dx = (x < minX) ? (minX - x) : ((x > maxX) ? (x - maxX) : 0.0f);
+            float dy = (y < minY) ? (minY - y) : ((y > maxY) ? (y - maxY) : 0.0f);
+            return dx * dx + dy * dy;
+        }
 
         /**
             * Calculate the area by which a rectangle would be enlarged if

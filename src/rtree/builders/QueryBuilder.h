@@ -51,7 +51,7 @@ namespace rtree {
          *
          * @param range The query rectangle defining the spatial search region.
          */
-        void contains(Rectangle& range);
+        void range(RTreeBulkLoad& rtree, const Rectangle& range);
 
         /**
          * @brief Performs a spatial join between two R-trees.

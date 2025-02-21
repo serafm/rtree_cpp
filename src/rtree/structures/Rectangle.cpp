@@ -1,31 +1,28 @@
 #include "Rectangle.h"
-#include <algorithm>
 #include <cmath>
 
 namespace rtree {
 
-    Rectangle::Rectangle()
-      : minX(MAXFLOAT),
-        minY(MAXFLOAT),
-        maxX(-MAXFLOAT),
-        maxY(-MAXFLOAT) {}
-
-    Rectangle::Rectangle(float x1, float y1, float x2, float y2) {
-        this->minX = std::min(x1, x2);
-        this->minY = std::min(y1, y2);
-        this->maxX = std::max(x1, x2);
-        this->maxY = std::max(y1, y2);
+    Rectangle::Rectangle(float x1, float y1, float x2, float y2, int id) {
+        this->minX = x1;
+        this->minY = y1;
+        this->maxX = x2;
+        this->maxY = y2;
+        this->id = id;
     }
 
-    Rectangle Rectangle::copy() const {
-        return {minX, minY, maxX, maxY};
+    Rectangle::Rectangle(float x1, float y1, float x2, float y2) {
+        this->minX = x1;
+        this->minY = y1;
+        this->maxX = x2;
+        this->maxY = y2;
     }
 
     bool Rectangle::edgeOverlaps(Rectangle& r) const {
         return minX == r.minX || maxX == r.maxX || minY == r.minY || maxY == r.maxY;
     }
 
-    bool Rectangle::intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
+   /* bool Rectangle::intersects(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                                  float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
         return r1MaxX >= r2MinX && r1MinX <= r2MaxX && r1MaxY >= r2MinY && r1MinY <= r2MaxY;
     }
@@ -33,28 +30,7 @@ namespace rtree {
     bool Rectangle::contains(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY,
                                  float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
         return r1MaxX >= r2MaxX && r1MinX <= r2MinX && r1MaxY >= r2MaxY && r1MinY <= r2MinY;
-    }
-
-    float Rectangle::distanceSq(float minX, float minY, float maxX, float maxY, float pX, float pY) {
-        // Check if the point is inside the rectangle
-        if (pX >= minX && pX <= maxX && pY >= minY && pY <= maxY) {
-            return 0.0f; // Distance is zero if the point is inside the rectangle
-        }
-
-        // Calculate distances to each edge
-        float distanceLeft = std::max(0.0f, minX - pX);   // Distance to left edge
-        float distanceRight = std::max(0.0f, pX - maxX);  // Distance to right edge
-        float distanceBottom = std::max(0.0f, minY - pY); // Distance to bottom edge
-        float distanceTop = std::max(0.0f, pY - maxY);    // Distance to top edge
-
-        // Horizontal and vertical distances (min distance to horizontal and vertical edges)
-        float distanceX = std::max(distanceLeft, distanceRight);
-        float distanceY = std::max(distanceBottom, distanceTop);
-
-        // Return the Euclidean distance
-        return std::sqrt(distanceX * distanceX + distanceY * distanceY);
-    }
-
+    }*/
 
     float Rectangle::enlargement(float r1MinX, float r1MinY, float r1MaxX, float r1MaxY, float r2MinX, float r2MinY, float r2MaxX, float r2MaxY) {
         // Calculate the area of r1

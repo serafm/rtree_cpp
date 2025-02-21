@@ -3,9 +3,13 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include <limits>
 #include <cmath>
+#include <limits>
+#include <map>
+#include <memory>
 #include <vector>
+
+#include "Rectangle.h"
 
 namespace rtree {
 
@@ -15,13 +19,9 @@ namespace rtree {
 
         public:
 
-        /**
-         * Node entry MBR structure
-         */
-        struct Entry {
-            float minX, minY, maxX, maxY;
-            int id;
-        };
+        std::vector<std::shared_ptr<Node>> children;
+        std::vector<Rectangle> leafs;
+        std::vector<int> ids;
 
         /**
          * Node ID
@@ -39,12 +39,12 @@ namespace rtree {
         /**
          * The level of the node in the tree
          */
-        int level = 0;
+        int level{};
 
         /**
          * Number of entries in the node
          */
-        int entryCount = 0;
+        int entryCount{};
 
         /**
          * Vector of entries coordinates
@@ -55,17 +55,12 @@ namespace rtree {
         std::vector<float> entriesMaxY{};
 
         /**
-         * Vector of rectangle ids if it's a leaf node / Node ids if it's parent node
-         */
-        std::vector<int> ids;
-
-        /**
          * Node constructor. Creates a new node with the given properties.
          * @param id Node id
          * @param level Level of the node in the tree.
          */
-        Node(int id, int level);
-        Node();
+        Node(int id, int level, int capacity);
+        Node(int capacity);
         ~Node();
 
         /**
@@ -76,7 +71,12 @@ namespace rtree {
          * @param maxY Max Y value
          * @param id Entry ID
          */
-        void addEntry(float minX, float minY, float maxX, float maxY, int id);
+        void addChildEntry(std::shared_ptr<Node>& n);
+
+        void addLeafEntry(Rectangle rect);
+
+        void sortChildrenByMinX();
+        void sortLeafsByMinX();
 
         /**
          * Find entry in the node.

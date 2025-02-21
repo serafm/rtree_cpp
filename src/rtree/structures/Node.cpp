@@ -1,43 +1,57 @@
 #include "Node.h"
 
+#include <algorithm>
+
 #include "../builders/RTreeBulkLoad.h"
 
 namespace rtree {
 
-    Node::Node(int id, int level)
+    Node::Node(int id, int level, int capacity)
     : nodeId(id),
     level(level)
     {
-        entriesMinX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMinY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        ids = std::vector<int>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+        children.reserve(capacity);
+        leafs.reserve(capacity);
     }
 
-    Node::Node() {
-        entriesMinX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMinY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxX = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        entriesMaxY = std::vector<float>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
-        ids = std::vector<int>(RTreeBulkLoad::DEFAULT_MAX_NODE_ENTRIES);
+    Node::Node(int capacity) {
+        children.reserve(capacity);
+        leafs.reserve(capacity);
     }
 
     Node::~Node() = default;
 
-    void Node::addEntry(float minX, float minY, float maxX, float maxY, int id) {
-        ids[entryCount] = id;
-        entriesMinX[entryCount] = minX;
-        entriesMinY[entryCount] = minY;
-        entriesMaxX[entryCount] = maxX;
-        entriesMaxY[entryCount] = maxY;
+    void Node::addChildEntry(std::shared_ptr<Node>& n) {
+        children.push_back(n);
+        ids.push_back(n->nodeId);
 
-        if (minX < mbrMinX) mbrMinX = minX;
-        if (minY < mbrMinY) mbrMinY = minY;
-        if (maxX > mbrMaxX) mbrMaxX = maxX;
-        if (maxY > mbrMaxY) mbrMaxY = maxY;
+        if (n->mbrMinX < mbrMinX) mbrMinX = n->mbrMinX;
+        if (n->mbrMinY < mbrMinY) mbrMinY = n->mbrMinY;
+        if (n->mbrMaxX > mbrMaxX) mbrMaxX = n->mbrMaxX;
+        if (n->mbrMaxY > mbrMaxY) mbrMaxY = n->mbrMaxY;
+    }
 
-        entryCount++;
+    void Node::addLeafEntry(Rectangle rect) {
+        leafs.push_back(rect);
+        ids.push_back(rect.id);
+
+        if (rect.minX < mbrMinX) mbrMinX = rect.minX;
+        if (rect.minY < mbrMinY) mbrMinY = rect.minY;
+        if (rect.maxX > mbrMaxX) mbrMaxX = rect.maxX;
+        if (rect.maxY > mbrMaxY) mbrMaxY = rect.maxY;
+    }
+    void Node::sortChildrenByMinX() {
+        std::sort(children.begin(), children.end(),
+            [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
+                return a->mbrMinX < b->mbrMinX;
+            });
+    }
+
+    void Node::sortLeafsByMinX() {
+        std::sort(leafs.begin(), leafs.end(),
+            [](const Rectangle& a, const Rectangle& b) {
+                return a.minX < b.minX;
+            });
     }
 
     int Node::findEntry(float minX, float minY, float maxX, float maxY, int id) const {
