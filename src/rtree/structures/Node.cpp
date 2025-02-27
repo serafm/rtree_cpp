@@ -21,7 +21,7 @@ namespace rtree {
 
     Node::~Node() = default;
 
-    void Node::addChildEntry(std::shared_ptr<Node>& n) {
+    void Node::addChildEntry(Node* n) {
         children.push_back(n);
         ids.push_back(n->nodeId);
 
@@ -31,7 +31,7 @@ namespace rtree {
         if (n->mbrMaxY > mbrMaxY) mbrMaxY = n->mbrMaxY;
     }
 
-    void Node::addLeafEntry(Rectangle rect) {
+    void Node::addLeafEntry(const Rectangle& rect) {
         leafs.push_back(rect);
         ids.push_back(rect.id);
 
@@ -42,7 +42,7 @@ namespace rtree {
     }
     void Node::sortChildrenByMinX() {
         std::sort(children.begin(), children.end(),
-            [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
+            [](const Node* a, const Node* b) {
                 return a->mbrMinX < b->mbrMinX;
             });
     }

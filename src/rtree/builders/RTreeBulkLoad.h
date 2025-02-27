@@ -12,15 +12,7 @@
 
 namespace rtree {
 
-class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
-
-    /**
-     * @brief A mapping of node IDs to their corresponding node objects.
-     *
-     * This hash map allows quick lookups of nodes by their ID, facilitating fast access
-     * to specific nodes during insertions, deletions, queries, and tree adjustments.
-     */
-    std::unordered_map<int, std::shared_ptr<Node>> m_nodeMap{};
+class RTreeBulkLoad {
 
     /**
      * @brief The ID of the root node of the R-tree.
@@ -39,13 +31,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      */
     int m_highestUsedNodeId{};
 
-    /**
-     * @brief A pointer to the root node of the R-tree.
-     *
-     * The root node is the entry point for all operations on the R-tree, including
-     * insertions, searches, and splits.
-     */
-    std::shared_ptr<Node> m_root{};
+
 
     /**
      * @brief The total number of entries (rectangles) in the R-tree.
@@ -107,7 +93,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * @param nodeCapacity The maximum number of entries a node can hold.
      * @return A vector of shared pointers to the created leaf nodes.
      */
-    std::vector<std::shared_ptr<Node>> createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity);
+    std::vector<Node*> createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity);
 
     /**
      * @brief Creates the next level of the R-tree from a given set of nodes.
@@ -119,7 +105,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * @param nodeCapacity The maximum number of entries a node can hold.
      * @return A vector of shared pointers to the newly created parent nodes.
      */
-    std::vector<std::shared_ptr<Node>> createNextLevel(std::vector<std::shared_ptr<Node>>& nodes, int nodeCapacity);
+    std::vector<Node*> createNextLevel(std::vector<Node*>& nodes, int nodeCapacity);
 
     /**
      * @brief Creates a new internal node with given child nodes.
@@ -131,7 +117,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * @param level The level of the new node in the R-tree.
      * @return A shared pointer to the newly created node.
      */
-    std::shared_ptr<Node> createNode(std::vector<std::shared_ptr<Node>>& children, int level);
+    Node* createNode(std::vector<Node*>& children, int level);
 
     /**
      * @brief Creates a leaf node containing a subset of rectangles.
@@ -143,7 +129,7 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * @param end The ending index (exclusive) of the rectangles in the vector.
      * @return A shared pointer to the newly created leaf node.
      */
-    std::shared_ptr<Node> createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end);
+    Node* createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end);
 
     public:
 
@@ -158,17 +144,38 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
     */
     void bulkLoad(std::vector<Rectangle>& rectangles);
 
+    /**
+     * @brief Performs a spatial join between two R-trees.
+     *
+     * This function recursively traverses both R-trees, identifying entries whose
+     * bounding rectangles intersect. By leveraging the hierarchical structure of
+     * the R-trees, it prunes large portions of the search space. Only nodes whose
+     * minimum bounding rectangles overlap are further explored, ensuring a more
+     * efficient join operation than a brute-force approach.
+     *
+     * @param rtreeB The second R-tree builder instance to join.
+     */
+    void join(RTreeBulkLoad& rtreeB);
+
     void range(const Rectangle& range);
 
     void nearestN(const Point &p, const int count);
 
-    void getLeafs(int nodeId, std::vector<int>& leafs);
+    void getLeafs(Node* node, std::vector<int>& leafs);
 
     static inline bool intersects(float rangeMinX, float rangeMinY, float rangeMaxX, float rangeMaxY,
                                float rectMinX, float rectMinY, float rectMaxX, float rectMaxY) {
         return !(rectMaxX < rangeMinX || rectMinX > rangeMaxX ||
                  rectMaxY < rangeMinY || rectMinY > rangeMaxY);
     }
+
+        /**
+     * @brief A pointer to the root node of the R-tree.
+     *
+     * The root node is the entry point for all operations on the R-tree, including
+     * insertions, searches, and splits.
+     */
+    Node* m_root;
 
     /**
      * @brief Default constructor for RTreeBuilder.
@@ -179,19 +186,6 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      * node maps) are prepared for later insertions.
      */
     RTreeBulkLoad(int capacity);
-
-    /**
-     * @brief Retrieves a node by its ID.
-     *
-     * This function looks up a node in the internal node map by its unique ID
-     * and returns a shared pointer to that node. If the node ID does not exist,
-     * an exception is thrown.
-     *
-     * @param id The unique node ID.
-     * @return A shared pointer to the corresponding node.
-     * @throws std::out_of_range If the node ID is not found in the node map.
-     */
-    std::shared_ptr<Node> getNode(int id);
 
     /**
      * @brief Returns the total number of entries (rectangles) stored in the R-tree.
@@ -209,16 +203,6 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
     int treeHeight{};
 
     /**
-     * @brief Returns the total number of nodes in the R-tree.
-     *
-     * This function returns the number of nodes currently present in the R-tree,
-     * including internal nodes and leaf nodes.
-     *
-     * @return The number of nodes.
-     */
-    int numNodes() const;
-
-    /**
      * @brief The default maximum number of entries allowed per node in the R-tree.
      *
      * When a node tries to accommodate more than this limit, it must be split,
@@ -226,7 +210,8 @@ class RTreeBulkLoad: public std::enable_shared_from_this<RTreeBulkLoad>{
      */
     const int m_capacity{};
 
-    int getRootNodeId() const;
+    void sweepLeafs(Rectangle& leaf, const Rectangle& rangeQ, int start, int size, std::vector<int>& results, uint32_t& res_size);
+    void sweepLeafsNext(const Rectangle& rangeQ, std::vector<Rectangle>& leafs, int start, int size, std::vector<int>& results, uint32_t& res_size);
 };
 
 } // rtree

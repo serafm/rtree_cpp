@@ -3,6 +3,7 @@
 #ifndef RECTANGLE_H
 #define RECTANGLE_H
 
+#include <cmath>
 #include <string>
 #include "Point.h"
 
@@ -100,13 +101,28 @@ namespace rtree {
             *
             * @return distance between this rectangle and the passed point.
         */
-        static inline float distanceSq(const float minX, const float minY,
-                                        const float maxX, const float maxY,
-                                        const float x, const float y) {
-            float dx = (x < minX) ? (minX - x) : ((x > maxX) ? (x - maxX) : 0.0f);
-            float dy = (y < minY) ? (minY - y) : ((y > maxY) ? (y - maxY) : 0.0f);
-            return dx * dx + dy * dy;
+        static inline float distance(float minX, float minY,
+                               float maxX, float maxY,
+                               float x, float y) {
+            float dx = 0.0f, dy = 0.0f;
+
+            // Compute horizontal distance
+            if (x < minX) {
+                dx = minX - x;
+            } else if (x > maxX) {
+                dx = x - maxX;
+            }
+
+            // Compute vertical distance
+            if (y < minY) {
+                dy = minY - y;
+            } else if (y > maxY) {
+                dy = y - maxY;
+            }
+
+            return (dx * dx) + (dy * dy);
         }
+
 
         /**
             * Calculate the area by which a rectangle would be enlarged if

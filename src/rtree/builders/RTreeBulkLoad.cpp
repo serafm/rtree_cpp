@@ -5,17 +5,17 @@
 #include <iostream>
 #include <queue>
 #include <stack>
+#include <fstream>
 
 namespace rtree {
 
     RTreeBulkLoad::RTreeBulkLoad(int capacity) : m_capacity(capacity) {}
 
     void RTreeBulkLoad::bulkLoad(std::vector<Rectangle>& rectangles) {
-        // Build leaf level
         m_totalRectangles = static_cast<int>(rectangles.size());
         auto leafNodes = createLeafLevel(rectangles, m_capacity);
-        std::vector<std::shared_ptr<Node>> currentLevel = leafNodes;
-        int currentHeight = 1;  // Leaf is level 1
+        std::vector<Node*> currentLevel = leafNodes;
+        int currentHeight = 1;
 
         while (currentLevel.size() > m_capacity) {
             currentLevel = createNextLevel(currentLevel, m_capacity);
@@ -25,18 +25,16 @@ namespace rtree {
         if (currentLevel.size() == 1) {
             m_root = currentLevel.front();
             m_rootNodeId = m_root->nodeId;
-            treeHeight = currentHeight; // no extra node created
+            treeHeight = currentHeight;
         } else {
-            // Otherwise, create a new root node that has these 'currentLevel' nodes as children
             m_root = createNode(currentLevel, currentHeight + 1);
-            m_nodeMap[m_root->nodeId] = m_root;
             m_rootNodeId = m_root->nodeId;
             treeHeight = currentHeight + 1;
         }
     }
 
-    std::vector<std::shared_ptr<Node>> RTreeBulkLoad::createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity) {
-        std::vector<std::shared_ptr<Node>> leafNodes;
+    std::vector<Node*> RTreeBulkLoad::createLeafLevel(std::vector<Rectangle>& rectangles, int nodeCapacity) {
+        std::vector<Node*> leafNodes;
 
         // Initial sort by minX (rough ordering)
         std::sort(rectangles.begin(), rectangles.end(),
@@ -44,11 +42,12 @@ namespace rtree {
                   return a.minX < b.minX;
               });
 
-        int numGroups = std::ceil(std::sqrt(m_totalRectangles / nodeCapacity));
-        int groupSize = m_totalRectangles / numGroups;  // integer division
+        int numOfLeafs = std::ceil(m_totalRectangles / (double) nodeCapacity);
+        int numGroups = (numOfLeafs / (double) std::sqrt(numOfLeafs));
+        int groupSize = std::ceil((double)std::sqrt(numOfLeafs))*nodeCapacity;
 
-        for (int g = 0; g < numGroups; g++) {
-            int start = g * groupSize;
+        for (int j = 0; j < numGroups; j++) {
+            int start = j * groupSize;
             int end = std::min(start + groupSize, m_totalRectangles);
 
             // Secondary sort by minY to group spatially
@@ -57,27 +56,25 @@ namespace rtree {
                       return a.minY < b.minY;
                   });
 
-            // Now, partition the group into leaf nodes, but re-sort each node's entries by minX.
+            // Now, partition the group into leaf nodes
             for (int i = start; i < end; i += nodeCapacity) {
                 int nodeEnd = std::min(i + nodeCapacity, end);
                 auto node = createLeafNode(rectangles, i, nodeEnd);
-                m_nodeMap[node->nodeId] = node;
                 leafNodes.push_back(node);
             }
         }
-
         return leafNodes;
     }
-    
-    std::vector<std::shared_ptr<Node>> RTreeBulkLoad::createNextLevel(std::vector<std::shared_ptr<Node>>& nodes, int nodeCapacity) {
-        std::vector<std::shared_ptr<Node>> parentNodes;
+
+    std::vector<Node*> RTreeBulkLoad::createNextLevel(std::vector<Node*>& nodes, int nodeCapacity) {
+        std::vector<Node*> parentNodes;
         int totalNodes = static_cast<int>(nodes.size());
 
         if (totalNodes == 0) return parentNodes;
 
         // Primary sort by the x-coordinate of the MBR.
         std::sort(nodes.begin(), nodes.end(),
-                  [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
+                  [](const Node* a, const Node* b) {
                       return a->mbrMinX < b->mbrMinX;
                   });
 
@@ -90,35 +87,33 @@ namespace rtree {
 
             // Secondary sort by minY for grouping.
             std::sort(nodes.begin() + start, nodes.begin() + end,
-                  [](const std::shared_ptr<Node>& a, const std::shared_ptr<Node>& b) {
+                  [](const Node* a, const Node* b) {
                       return a->mbrMinY < b->mbrMinY;
                   });
 
             // Now, for each parent node, re-sort its entries by minX.
             for (int i = start; i < end; i += nodeCapacity) {
                 int nodeEnd = std::min(i + nodeCapacity, end);
-                std::vector<std::shared_ptr<Node>> children(nodes.begin() + i, nodes.begin() + nodeEnd);
+                std::vector<Node*> children(nodes.begin() + i, nodes.begin() + nodeEnd);
                 int childLevel = children.front()->level;  // All children have the same level
                 auto parent = createNode(children, childLevel + 1);
-                m_nodeMap[parent->nodeId] = parent;
                 parentNodes.push_back(parent);
             }
         }
-
         return parentNodes;
     }
 
-    std::shared_ptr<Node> RTreeBulkLoad::createNode(std::vector<std::shared_ptr<Node>>& children, int level) {
-        auto node = std::make_shared<Node>(getNextNodeId(), level, m_capacity);
-        for (auto& child : children) {
+    Node* RTreeBulkLoad::createNode(std::vector<Node*>& children, int level) {
+        auto node = new Node(getNextNodeId(), level, m_capacity);
+        for (const auto child : children) {
             node->addChildEntry(child);
         }
         node->sortChildrenByMinX();
         return node;
     }
 
-    std::shared_ptr<Node> RTreeBulkLoad::createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end) {
-        auto node = std::make_shared<Node>(getNextNodeId(), 1, m_capacity);
+    Node* RTreeBulkLoad::createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end) {
+        auto node = new Node(getNextNodeId(), 1, m_capacity);
         for (int i = start; i < end; i++) {
             node->addLeafEntry(rectangles[i]);
         }
@@ -130,188 +125,263 @@ namespace rtree {
         return m_nextNodeId++;
     }
 
-    std::shared_ptr<Node> RTreeBulkLoad::getNode(int id) {
-        return m_nodeMap.at(id);
-    }
-
     int RTreeBulkLoad::treeSize() const {
         return m_totalRectangles;
     }
 
-    int RTreeBulkLoad::numNodes() const {
-        return m_nodeMap.size();
-    }
-
-    int RTreeBulkLoad::getRootNodeId() const {
-        return m_rootNodeId;
-    }
-
     // Queries
 
-    void RTreeBulkLoad::getLeafs(int nodeId, std::vector<int>& leafs) {
-        auto node = m_nodeMap.at(nodeId);
-
+    void RTreeBulkLoad::getLeafs(Node* node, std::vector<int>& leafs) {
+        
         if (node->isLeaf()) {
             leafs.insert(leafs.end(), node->ids.begin(), node->ids.end());
-        } else {
-            for (const auto& child : node->children) {
-                getLeafs(child->nodeId, leafs);
+        }
+        else {
+            for (auto child : node->children) {
+                getLeafs(child, leafs);
             }
         }
     }
 
-    void RTreeBulkLoad::range(const Rectangle& range) {
+void RTreeBulkLoad::range(const Rectangle& r) {
         std::vector<int> m_ids;
-        std::queue<std::shared_ptr<Node>> nodeQueue;
+        std::stack<Node*> nodeStack;
 
-        const float minX = range.minX;
-        const float minY = range.minY;
-        const float maxX = range.maxX;
-        const float maxY = range.maxY;
+        const float minX = r.minX;
+        const float minY = r.minY;
+        const float maxX = r.maxX;
+        const float maxY = r.maxY;
 
-        if (!m_root) return;  // Prevent null root
+        nodeStack.push(m_root);
 
-        nodeQueue.push(m_root);
+        while (!nodeStack.empty()) {
+            const auto n = nodeStack.top();
+            nodeStack.pop();
 
-        while (!nodeQueue.empty()) {
-            auto n = nodeQueue.front();
-            nodeQueue.pop();
-
-            if (!intersects(minX, minY, maxX, maxY, n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY))
+            if (!intersects(minX, minY, maxX, maxY,
+                n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY))
                 continue;
 
             if (!n->isLeaf()) {
-                if (Rectangle::contains(minX, minY, maxX, maxY, n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY)) {
-                    getLeafs(n->nodeId, m_ids);
+                if (Rectangle::contains(minX, minY, maxX, maxY,
+                    n->mbrMinX, n->mbrMinY, n->mbrMaxX, n->mbrMaxY))
+                {
+                    getLeafs(n, m_ids);
                     continue;
                 }
 
-                for (const auto& child : n->children) {
+                for (auto child : n->children) {
+
+                    if(child->mbrMaxX < minX)
+                        continue;
+
                     if (child->mbrMinX > maxX) {
                         break;
                     }
 
-                    if (child && intersects(minX, minY, maxX, maxY, child->mbrMinX, child->mbrMinY, child->mbrMaxX, child->mbrMaxY)) {
-                        nodeQueue.push(child);
+                    if (intersects(minX, minY, maxX, maxY,
+                        child->mbrMinX, child->mbrMinY, child->mbrMaxX, child->mbrMaxY))
+                    {
+                        nodeStack.push(child);
                     }
                 }
                 continue;
             }
-            for (const auto& leaf : n->leafs) {
-                if (leaf.minX > maxX) {
-                    break;
-                }
 
-                if (leaf.intersects(minX, minY, maxX, maxY)) {
-                    m_ids.push_back(leaf.id);
+            uint32_t size = m_ids.size();
+            m_ids.resize(size+m_capacity);
+
+            int currentLeaf = 0, currentRange = 0;
+            uint32_t totalLeafs = n->leafs.size();
+
+            while(currentLeaf < totalLeafs && currentRange < 1){
+                if (minX < n->leafs[currentLeaf].minX){
+                    sweepLeafsNext(r, n->leafs, currentLeaf, totalLeafs, m_ids, size);
+                    currentRange++;
+                }else{
+                    sweepLeafs(n->leafs[currentLeaf], r, currentRange, 1, m_ids, size);
+                    currentLeaf++;
                 }
             }
+
+           m_ids.resize(size);
         }
-       //std::cout << "Num of ids: " << m_ids.size() << std::endl;
+        //std::cout << m_ids.size() << std::endl;
+        // Write results to a file
+        /*std::ofstream outFile("/home/serafm/dev/rtree_cpp/range_results.txt", std::ios::app);
+        if (!outFile) {
+            std::cerr << "Error: Unable to open file for writing results!" << std::endl;
+            return;
+        }
+        outFile << m_ids.size() << "\n";*/
+    }
+
+    void RTreeBulkLoad::sweepLeafs(Rectangle& leaf, const Rectangle& rangeQ, int start, int size, std::vector<int>& results, uint32_t& res_size){
+        int counter = start;
+        
+        while(counter < size && leaf.maxX >= rangeQ.minX){
+            if (leaf.minY > rangeQ.maxY || leaf.maxY < rangeQ.minY){
+                counter++;
+                continue;
+            }
+            results[res_size++] = leaf.id;
+            counter++;
+        }
+    }
+
+    void RTreeBulkLoad::sweepLeafsNext(const Rectangle& rangeQ, std::vector<Rectangle>& leafs, int start, int size, std::vector<int>& results, uint32_t& res_size){
+        int counter = start;
+        
+        while (counter < size && rangeQ.maxX >= leafs[counter].minX){
+            if (rangeQ.minY > leafs[counter].maxY || rangeQ.maxY < leafs[counter].minY) {
+                counter++;
+                continue;
+            }
+            results[res_size++] = leafs[counter].id;
+            counter++;
+        }
     }
 
     void RTreeBulkLoad::nearestN(const Point &p, const int count) {
         std::priority_queue<std::pair<float, int>> m_distanceQueue;
-        if (count <= 0) {
-            return;
-        }
-
-        // Clear previously stored results.
-        //m_distanceQueue = std::priority_queue<std::pair<float, int>>();
-
-        float furthestNeighborDistance = MAXFLOAT;
-        const int targetCount = count;
-        // Cache the target count as size_t to avoid repeated casts in the loops.
-        const size_t targetCountLocal = static_cast<size_t>(targetCount);
-
-        // Cache query coordinates.
         const float qx = p.x;
         const float qy = p.y;
 
+        float furthestNeighborDistance = MAXFLOAT;
+
         // A min-heap for nodes based on their bounding box distance to the query point.
-        using NodePair = std::pair<float, int>;
+        using NodePair = std::pair<float, Node*>;
         std::priority_queue<
             NodePair,
             std::vector<NodePair>,
             std::greater<NodePair>
         > nodeQueue;
 
-        // Start with the root node.
-        int rootNodeId = getRootNodeId();
-        auto rootNode = getNode(rootNodeId);
-        if (!rootNode) {
-            return; // no root node
-        }
-
-        float rootDist = Rectangle::distanceSq(
-            rootNode->mbrMinX, rootNode->mbrMinY,
-            rootNode->mbrMaxX, rootNode->mbrMaxY,
-            qx, qy
-        );
-        nodeQueue.emplace(rootDist, rootNodeId);
+        nodeQueue.emplace(MAXFLOAT, m_root);
 
         // Best-first search.
         while (!nodeQueue.empty()) {
-            // Early termination: if the smallest node in the queue is farther than our current candidate,
-            // no better candidate exists.
-            if (m_distanceQueue.size() == targetCountLocal &&
-                nodeQueue.top().first > furthestNeighborDistance) {
-                break;
-            }
-
-            auto [dist, nodeId] = nodeQueue.top();
+            const auto [dist, n] = nodeQueue.top();
             nodeQueue.pop();
 
-            // Prune this node if its distance is already worse.
-            if (m_distanceQueue.size() == targetCountLocal && dist > furthestNeighborDistance) {
-                continue;
-            }
-
-            auto n = getNode(nodeId);
-            if (!n) {
-                continue;
+            // Exit if no more nodes smaller than the maximum already in queue
+            if (m_distanceQueue.size() == count && dist >= furthestNeighborDistance) {
+                break;
             }
 
             if (!n->isLeaf()) {
                 // For internal nodes, push children into the nodeQueue.
-                for (int i = 0; i < n->entryCount; i++) {
-                    float childDist = Rectangle::distanceSq(
-                        n->entriesMinX[i], n->entriesMinY[i],
-                        n->entriesMaxX[i], n->entriesMaxY[i],
+                for (const auto child : n->children) {
+                    float childDist = Rectangle::distance(
+                        child->mbrMinX, child->mbrMinY,
+                        child->mbrMaxX, child->mbrMaxY,
                         qx, qy
                     );
-                    if (m_distanceQueue.size() < targetCountLocal ||
-                        childDist <= furthestNeighborDistance) {
-                        nodeQueue.emplace(childDist, n->ids[i]);
-                    }
+                    nodeQueue.emplace(childDist, child);
                 }
-            } else {
-                // For leaf nodes, process each entry.
-                for (int i = 0; i < n->entryCount; i++) {
-                    float entryDistanceSq = Rectangle::distanceSq(
-                        n->entriesMinX[i], n->entriesMinY[i],
-                        n->entriesMaxX[i], n->entriesMaxY[i],
-                        qx, qy
-                    );
-                    int entryId = n->ids[i];
+                continue;
+            }
+            // For leaf nodes, process each entry.
+            for (const auto leaf : n->leafs) {
+                const float entryDistance = Rectangle::distance(
+                    leaf.minX, leaf.minY, leaf.maxX, leaf.maxY,
+                    qx, qy
+                );
 
-                    if (m_distanceQueue.size() < targetCountLocal) {
-                        m_distanceQueue.emplace(entryDistanceSq, entryId);
-                        if (m_distanceQueue.size() == targetCountLocal) {
-                            furthestNeighborDistance = m_distanceQueue.top().first;
-                        }
-                    } else if (entryDistanceSq < m_distanceQueue.top().first) {
-                        m_distanceQueue.pop();
-                        m_distanceQueue.emplace(entryDistanceSq, entryId);
+                uint32_t queue_size = m_distanceQueue.size();
+                if (queue_size < count) {
+                    m_distanceQueue.emplace(entryDistance, leaf.id);
+                    if (queue_size == count) {
                         furthestNeighborDistance = m_distanceQueue.top().first;
                     }
+                } else if (entryDistance < m_distanceQueue.top().first) {
+                    m_distanceQueue.pop();
+                    m_distanceQueue.emplace(entryDistance, leaf.id);
+                    furthestNeighborDistance = entryDistance;
                 }
             }
         }
-        while (!m_distanceQueue.empty()) {
+        /*while (!m_distanceQueue.empty()) {
             auto [dist, id] = m_distanceQueue.top();
             std::cout << id << " : " << dist << std::endl;
             m_distanceQueue.pop();
+        }*/
+    }
+
+    void RTreeBulkLoad::join(RTreeBulkLoad& rtreeB) {
+        std::map<int, std::vector<int>> m_joinRectangles;
+        std::stack<std::pair<Node*, Node*>> nodePairs;
+        nodePairs.emplace(this->m_root, rtreeB.m_root);
+
+        while (!nodePairs.empty()) {
+            auto [nodeA, nodeB] = nodePairs.top();
+            nodePairs.pop();
+
+            // Prune if the two MBRs do not intersect.
+            if (!intersects(
+                    nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,
+                    nodeB->mbrMinX, nodeB->mbrMinY, nodeB->mbrMaxX, nodeB->mbrMaxY))
+            {
+                continue;
+            }
+
+            // Case 1: Both nodes are leaves – do pairwise comparisons.
+            if (nodeA->isLeaf() && nodeB->isLeaf()) {
+                for (const auto leafA : nodeA->leafs) {
+                    for (const auto leafB : nodeB->leafs) {
+                        if (intersects(
+                                leafA.minX, leafA.minY, leafA.maxX, leafA.maxY,
+                                leafB.minX, leafB.minY, leafB.maxX, leafB.maxY))
+                        {
+                            m_joinRectangles[leafA.id].push_back(leafB.id);
+                        }
+                    }
+                }
+            }
+            // Case 2: Both nodes are internal.
+            else if (!nodeA->isLeaf() && !nodeB->isLeaf()) {
+                // For each child of nodeA, use binary search in nodeB's sorted entries.
+                // Note: This assumes nodeB's entries are sorted by minX.
+                for (const auto childA : nodeA->children) {
+                    // Scan from low until nodeB’s child's minX is beyond childA’s maxX.
+                    for (const auto childB : nodeB->children) {
+                        if (childB->mbrMinX > childA->mbrMaxX)
+                            break;
+                        if (intersects(
+                                childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
+                                childB->mbrMinX, childB->mbrMinY, childB->mbrMaxX, childB->mbrMaxY))
+                        {
+                            nodePairs.emplace(childA, childB);
+                        }
+                    }
+                }
+            }
+            // Case 3: nodeA is internal, nodeB is a leaf.
+            else if (!nodeA->isLeaf() && nodeB->isLeaf()) {
+                for (const auto childA : nodeA->children) {
+                    if (childA->mbrMinX > nodeB->mbrMaxX)
+                        break;
+                    if (intersects(
+                            childA->mbrMinX, childA->mbrMinY, childA->mbrMaxX, childA->mbrMaxY,
+                            nodeB->mbrMinX, nodeB->mbrMinY, nodeB->mbrMaxX, nodeB->mbrMaxY))
+                    {
+                        nodePairs.emplace(childA, nodeB);
+                    }
+                }
+            }
+            // Case 4: nodeA is a leaf, nodeB is internal.
+            else {
+                for (const auto childB : nodeB->children) {
+                    if (childB->mbrMinX > nodeA->mbrMaxX)
+                        break;
+                    if (intersects(
+                            nodeA->mbrMinX, nodeA->mbrMinY, nodeA->mbrMaxX, nodeA->mbrMaxY,
+                            childB->mbrMinX, childB->mbrMinY, childB->mbrMaxX, childB->mbrMaxY))
+                    {
+                        nodePairs.emplace(nodeA, childB);
+                    }
+                }
+            }
         }
     }
 

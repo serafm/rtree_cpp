@@ -19,7 +19,7 @@ namespace rtree {
 
         public:
 
-        std::vector<std::shared_ptr<Node>> children;
+        std::vector<Node*> children;
         std::vector<Rectangle> leafs;
         std::vector<int> ids;
 
@@ -71,9 +71,9 @@ namespace rtree {
          * @param maxY Max Y value
          * @param id Entry ID
          */
-        void addChildEntry(std::shared_ptr<Node>& n);
+        void addChildEntry(Node* n);
 
-        void addLeafEntry(Rectangle rect);
+        void addLeafEntry(const Rectangle& rect);
 
         void sortChildrenByMinX();
         void sortLeafsByMinX();

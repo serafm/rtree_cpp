@@ -2,4 +2,4 @@ cmake*
 *.o
 .idea/editor.xml
 .idea/misc.xml
-
+.clang-format
