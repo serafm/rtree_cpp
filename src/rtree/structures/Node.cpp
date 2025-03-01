@@ -1,9 +1,5 @@
 #include "Node.h"
 
-#include <algorithm>
-
-#include "../builders/RTreeBulkLoad.h"
-
 namespace rtree {
 
     Node::Node(int id, int level, int capacity)
@@ -54,70 +50,62 @@ namespace rtree {
             });
     }
 
-    int Node::findEntry(float minX, float minY, float maxX, float maxY, int id) const {
-        for (int i = 0; i < entryCount; i++) {
-            if (id == ids[i] &&
-              entriesMinX[i] == minX && entriesMinY[i] == minY &&
-              entriesMaxX[i] == maxX && entriesMaxY[i] == maxY) {
-                return i;
-              }
+    void Node::deleteEntry(int index) {
+        if (isLeaf()) {
+            // Delete from leaf entries
+            leafs.erase(leafs.begin() + index);
+        } else {
+            // Delete from children
+            children.erase(children.begin() + index);
         }
-        return -1;
+    
+        // Remove ID from ids vector
+        ids.erase(ids.begin() + index);
+    
+        // Recalculate MBR after deletion
+        recalculateMBR();
     }
-
-    void Node::deleteEntry(int i) {
-        int lastIndex = entryCount - 1;
-        float deletedMinX = entriesMinX[i];
-        float deletedMinY = entriesMinY[i];
-        float deletedMaxX = entriesMaxX[i];
-        float deletedMaxY = entriesMaxY[i];
-
-        if (i != lastIndex) {
-            entriesMinX[i] = entriesMinX[lastIndex];
-            entriesMinY[i] = entriesMinY[lastIndex];
-            entriesMaxX[i] = entriesMaxX[lastIndex];
-            entriesMaxY[i] = entriesMaxY[lastIndex];
-            ids[i] = ids[lastIndex];
-        }
-        entryCount--;
-
-        // adjust the MBR
-        recalculateMBRIfInfluencedBy(deletedMinX, deletedMinY, deletedMaxX, deletedMaxY);
-    }
-
-    void Node::recalculateMBRIfInfluencedBy(float deletedMinX, float deletedMinY, float deletedMaxX, float deletedMaxY) {
-        if (mbrMinX == deletedMinX || mbrMinY == deletedMinY || mbrMaxX == deletedMaxX || mbrMaxY == deletedMaxY) {
-            recalculateMBR();
-        }
-    }
-
+    
     void Node::recalculateMBR() {
-        mbrMinX = entriesMinX[0];
-        mbrMinY = entriesMinY[0];
-        mbrMaxX = entriesMaxX[0];
-        mbrMaxY = entriesMaxY[0];
-
-        for (int i = 1; i < entryCount; i++) {
-            if (entriesMinX[i] < mbrMinX) mbrMinX = entriesMinX[i];
-            if (entriesMinY[i] < mbrMinY) mbrMinY = entriesMinY[i];
-            if (entriesMaxX[i] > mbrMaxX) mbrMaxX = entriesMaxX[i];
-            if (entriesMaxY[i] > mbrMaxY) mbrMaxY = entriesMaxY[i];
-        }
-    }
-
-    void Node::reorganize(int maxNodeEntries) {
-        int countdownIndex = maxNodeEntries - 1;
-        for (int index = 0; index < entryCount; index++) {
-            if (ids[index] == -1) {
-                while (ids[countdownIndex] == -1 && countdownIndex > index) {
-                    countdownIndex--;
-                }
-                entriesMinX[index] = entriesMinX[countdownIndex];
-                entriesMinY[index] = entriesMinY[countdownIndex];
-                entriesMaxX[index] = entriesMaxX[countdownIndex];
-                entriesMaxY[index] = entriesMaxY[countdownIndex];
-                ids[index] = ids[countdownIndex];
-                ids[countdownIndex] = -1;
+        if (isLeaf()) {
+            // Recalculate MBR based on leaf rectangles
+            if (leafs.empty()) {
+                // Reset MBR to initial state if no entries left
+                mbrMinX = MAXFLOAT;
+                mbrMinY = MAXFLOAT;
+                mbrMaxX = -MAXFLOAT;
+                mbrMaxY = -MAXFLOAT;
+                return;
+            }
+    
+            mbrMinX = mbrMinY = MAXFLOAT;
+            mbrMaxX = mbrMaxY = -MAXFLOAT;
+    
+            for (const auto& rect : leafs) {
+                if (rect.minX < mbrMinX) mbrMinX = rect.minX;
+                if (rect.minY < mbrMinY) mbrMinY = rect.minY;
+                if (rect.maxX > mbrMaxX) mbrMaxX = rect.maxX;
+                if (rect.maxY > mbrMaxY) mbrMaxY = rect.maxY;
+            }
+        } else {
+            // Recalculate MBR based on child nodes
+            if (children.empty()) {
+                // Reset MBR to initial state if no entries left
+                mbrMinX = MAXFLOAT;
+                mbrMinY = MAXFLOAT;
+                mbrMaxX = -MAXFLOAT;
+                mbrMaxY = -MAXFLOAT;
+                return;
+            }
+    
+            mbrMinX = mbrMinY = MAXFLOAT;
+            mbrMaxX = mbrMaxY = -MAXFLOAT;
+    
+            for (const auto* child : children) {
+                if (child->mbrMinX < mbrMinX) mbrMinX = child->mbrMinX;
+                if (child->mbrMinY < mbrMinY) mbrMinY = child->mbrMinY;
+                if (child->mbrMaxX > mbrMaxX) mbrMaxX = child->mbrMaxX;
+                if (child->mbrMaxY > mbrMaxY) mbrMaxY = child->mbrMaxY;
             }
         }
     }
@@ -139,7 +127,7 @@ namespace rtree {
     }
 
     bool Node::isEmpty() const {
-        return level == 0;
+        return this->children.empty() || this->leafs.empty();
     }
 
 }

@@ -4,32 +4,43 @@
 #define NODE_H
 
 #include <cmath>
-#include <limits>
-#include <map>
-#include <memory>
 #include <vector>
+#include <algorithm>
 
 #include "Rectangle.h"
 
 namespace rtree {
 
-    class QueryBuilder;
-
+    /**
+     * Node class representing a single node within an R-tree.
+     * Nodes can either contain child nodes (internal nodes) or leaf rectangles (leaf nodes).
+     */
     class Node {
 
-        public:
+    public:
 
+        /**
+         * Child nodes (only used if this is an internal node).
+         */
         std::vector<Node*> children;
+
+        /**
+         * Leaf rectangles (only used if this is a leaf node).
+         */
         std::vector<Rectangle> leafs;
+
+        /**
+         * IDs corresponding to the leaf rectangles (only used if this is a leaf node).
+         */
         std::vector<int> ids;
 
         /**
-         * Node ID
+         * Unique identifier for the node.
          */
         int nodeId{};
 
         /**
-         * Minimum bounding rectangle (MBR) of the node
+         * Minimum bounding rectangle (MBR) of this node.
          */
         float mbrMinX = MAXFLOAT;
         float mbrMinY = MAXFLOAT;
@@ -37,110 +48,101 @@ namespace rtree {
         float mbrMaxY = -MAXFLOAT;
 
         /**
-         * The level of the node in the tree
+         * The level of the node in the tree.
+         * Level 1 nodes are leaf nodes, while higher levels are internal nodes.
          */
         int level{};
 
         /**
-         * Number of entries in the node
+         * Number of entries (either children or leaf rectangles) in the node.
          */
         int entryCount{};
 
         /**
-         * Vector of entries coordinates
-         */
-        std::vector<float> entriesMinX{};
-        std::vector<float> entriesMinY{};
-        std::vector<float> entriesMaxX{};
-        std::vector<float> entriesMaxY{};
-
-        /**
-         * Node constructor. Creates a new node with the given properties.
-         * @param id Node id
-         * @param level Level of the node in the tree.
+         * Constructor for internal nodes.
+         * @param id Node identifier.
+         * @param level Level of the node within the tree.
+         * @param capacity Maximum number of entries this node can hold.
          */
         Node(int id, int level, int capacity);
+
+        /**
+         * Constructor for leaf nodes or empty nodes.
+         * @param capacity Maximum number of entries this node can hold.
+         */
         Node(int capacity);
+
+        /**
+         * Destructor - cleans up child pointers if necessary.
+         */
         ~Node();
 
         /**
-         * Add new entry to the node.
-         * @param minX Min X value
-         * @param minY Min Y value
-         * @param maxX Max X value
-         * @param maxY Max Y value
-         * @param id Entry ID
+         * Add a child node to this node (used for internal nodes).
+         * Updates the MBR to include the new child node.
+         * @param n Pointer to the child node being added.
          */
         void addChildEntry(Node* n);
 
+        /**
+         * Add a leaf rectangle to this node (used for leaf nodes).
+         * Updates the MBR to include the new rectangle.
+         * @param rect The rectangle being added.
+         */
         void addLeafEntry(const Rectangle& rect);
 
+        /**
+         * Sort the child nodes by their minimum X coordinate.
+         * This is useful for certain spatial queries and tree rebalancing.
+         */
         void sortChildrenByMinX();
+
+        /**
+         * Sort the leaf rectangles by their minimum X coordinate.
+         * This is useful for certain spatial queries and tree rebalancing.
+         */
         void sortLeafsByMinX();
 
         /**
-         * Find entry in the node.
-         * @param minX Min X value
-         * @param minY Min Y value
-         * @param maxX Max X value
-         * @param maxY Max Y value
-         * @param id Entry id
-         * @return
-         */
-        int findEntry(float minX, float minY, float maxX, float maxY, int id) const;
-
-        /**
-         * Delete entry by index.
-         * @param index Entry index
+         * Delete an entry by index.
+         * @param index Index of the entry to remove.
          */
         void deleteEntry(int index);
 
         /**
-         * Recalculate the MBR of the node if necessary.
-         * @param deletedMinX Min X value of deleted entry
-         * @param deletedMinY Min Y value of deleted entry
-         * @param deletedMaxX Max X value of deleted entry
-         * @param deletedMaxY Max Y value of deleted entry
-         */
-        void recalculateMBRIfInfluencedBy(float deletedMinX, float deletedMinY, float deletedMaxX, float deletedMaxY);
-
-        /**
-         * Recalculate node's MBR.
+         * Recalculate the minimum bounding rectangle (MBR) for the node.
+         * Iterates over all current entries to compute the MBR.
          */
         void recalculateMBR();
 
         /**
-         * Reorganize the tree.
-         */
-        void reorganize(int maxNodeEntries);
-
-        /**
-         * Get the number of entries in the node.
-         * @return Number of entries
+         * Get the current number of entries in this node.
+         * @return The number of entries (either children or leaf rectangles).
          */
         [[nodiscard]] int getEntryCount() const;
 
         /**
-         * Get the node ID.
-         * @return Node ID
+         * Get the unique identifier of this node.
+         * @return Node ID.
          */
         [[nodiscard]] int getNodeId() const;
 
         /**
-         * Check if node is leaf node.
-         * @return boolean value
+         * Check if this node is a leaf node.
+         * Leaf nodes contain rectangles; internal nodes contain child nodes.
+         * @return True if this is a leaf node, false if internal.
          */
         [[nodiscard]] bool isLeaf() const;
 
         /**
-         * Get the level of the node.
-         * @return Level value
+         * Get the level of this node within the tree.
+         * @return Level (0 for leaf nodes, higher values for internal nodes).
          */
         [[nodiscard]] int getLevel() const;
 
         /**
-         * Check if the node is empty
-         * @return boolean value
+         * Check if the node is empty (contains no entries).
+         * @return True if empty, false otherwise.
          */
         [[nodiscard]] bool isEmpty() const;
     };

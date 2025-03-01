@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
             //break;
         }
         std::cout << "Range Query Time: " << queryTime << " sec" << std::endl;
-        std::cout << "Average Query Time: " << queryTime / (double) rangeQueries.size() << " sec" << std::endl;
+        //std::cout << "Average Query Time: " << queryTime / (double) rangeQueries.size() << " sec" << std::endl;
     }
     else if (queryType == NEAREST) {
         if (k <= 0) {
@@ -221,7 +221,7 @@ int main(int argc, char* argv[]) {
             //break;
         }
         std::cout << "Nearest Query Time: " << queryTime << " sec" << std::endl;
-        std::cout << "Average Query Time: " << queryTime / (double) nearestQueries.size() << " sec" << std::endl;
+        //std::cout << "Average Query Time: " << queryTime / (double) nearestQueries.size() << " sec" << std::endl;
     }
     else if (queryType == JOIN) {
         loadData(tree_path_b);

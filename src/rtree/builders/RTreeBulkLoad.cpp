@@ -1,12 +1,5 @@
 #include "RTreeBulkLoad.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <queue>
-#include <stack>
-#include <fstream>
-
 namespace rtree {
 
     RTreeBulkLoad::RTreeBulkLoad(int capacity) : m_capacity(capacity) {}
@@ -125,7 +118,7 @@ namespace rtree {
         return m_nextNodeId++;
     }
 
-    int RTreeBulkLoad::treeSize() const {
+    int RTreeBulkLoad::getLeafsSize() const {
         return m_totalRectangles;
     }
 
@@ -143,7 +136,7 @@ namespace rtree {
         }
     }
 
-void RTreeBulkLoad::range(const Rectangle& r) {
+    void RTreeBulkLoad::range(const Rectangle& r) {
         std::vector<int> m_ids;
         std::stack<Node*> nodeStack;
 
@@ -242,7 +235,7 @@ void RTreeBulkLoad::range(const Rectangle& r) {
         }
     }
 
-    void RTreeBulkLoad::nearestN(const Point &p, const int count) {
+    void RTreeBulkLoad::nearestN(const Point &p, int k) {
         std::priority_queue<std::pair<float, int>> m_distanceQueue;
         const float qx = p.x;
         const float qy = p.y;
@@ -265,7 +258,7 @@ void RTreeBulkLoad::range(const Rectangle& r) {
             nodeQueue.pop();
 
             // Exit if no more nodes smaller than the maximum already in queue
-            if (m_distanceQueue.size() == count && dist >= furthestNeighborDistance) {
+            if (m_distanceQueue.size() == k && dist >= furthestNeighborDistance) {
                 break;
             }
 
@@ -289,9 +282,9 @@ void RTreeBulkLoad::range(const Rectangle& r) {
                 );
 
                 uint32_t queue_size = m_distanceQueue.size();
-                if (queue_size < count) {
+                if (queue_size < k) {
                     m_distanceQueue.emplace(entryDistance, leaf.id);
-                    if (queue_size == count) {
+                    if (queue_size == k) {
                         furthestNeighborDistance = m_distanceQueue.top().first;
                     }
                 } else if (entryDistance < m_distanceQueue.top().first) {

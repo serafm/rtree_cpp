@@ -1,8 +1,13 @@
 #pragma once
-#include <map>
+
 #include <memory>
-#include <unordered_map>
 #include <vector>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <fstream>
+#include <map>
 
 #include "../structures/Node.h"
 #include "../structures/Rectangle.h"
@@ -23,46 +28,12 @@ class RTreeBulkLoad {
     int m_rootNodeId{};
 
     /**
-     * @brief Tracks the highest node ID used so far.
-     *
-     * Whenever a new node is created, this value is updated. If deleted node IDs
-     * are reused, this value ensures that newly created nodes still receive unique,
-     * incrementally increasing IDs.
-     */
-    int m_highestUsedNodeId{};
-
-
-
-    /**
      * @brief The total number of entries (rectangles) in the R-tree.
      *
      * This count increases as entries are inserted. It can be used to determine the
      * overall size of the dataset stored in the tree.
      */
     int m_totalRectangles{};
-
-    /**
-     * @brief The maximum number of entries each node can hold.
-     *
-     * Once a node reaches this limit, it must be split into two nodes.
-     */
-    int m_maxNodeEntries{};
-
-    /**
-     * @brief The minimum number of entries each node must hold.
-     *
-     * Except for the root, all nodes must have at least this many entries, ensuring
-     * balanced distribution and preventing excessive underflow in the tree.
-     */
-    int m_minNodeEntries{};
-
-    /**
-     * @brief A unique identifier assigned to each new entry as it is inserted.
-     *
-     * This ID increments automatically with each inserted entry, ensuring every
-     * rectangle in the R-tree can be uniquely identified.
-     */
-    int m_entryId = 1;
 
     /**
      * @brief A unique id for every node created in the tree.
@@ -131,68 +102,75 @@ class RTreeBulkLoad {
      */
     Node* createLeafNode(const std::vector<Rectangle>& rectangles, int start, int end);
 
-    public:
-
     /**
-    * @brief Bulk loads a set of rectangles (a given dataset) into the R-tree.
-    *
-    * This function constructs the R-tree from a given set of rectangles using a
-    * bottom-up approach. It first creates the leaf level, then iteratively builds
-    * higher levels until a single root node remains.
-    *
-    * @param rectangles A vector of rectangles to be inserted into the R-tree.
-    */
-    void bulkLoad(std::vector<Rectangle>& rectangles);
-
-    /**
-     * @brief Performs a spatial join between two R-trees.
+     * @brief Recursively retrieves all leaf entry IDs from the given node and its children.
      *
-     * This function recursively traverses both R-trees, identifying entries whose
-     * bounding rectangles intersect. By leveraging the hierarchical structure of
-     * the R-trees, it prunes large portions of the search space. Only nodes whose
-     * minimum bounding rectangles overlap are further explored, ensuring a more
-     * efficient join operation than a brute-force approach.
+     * If the node is a leaf node, its entry IDs are added to the vector.
+     * Otherwise, the method recurses into all children.
      *
-     * @param rtreeB The second R-tree builder instance to join.
+     * @param node The starting node.
+     * @param leafs Vector to store the collected leaf entry IDs.
      */
-    void join(RTreeBulkLoad& rtreeB);
-
-    void range(const Rectangle& range);
-
-    void nearestN(const Point &p, const int count);
-
     void getLeafs(Node* node, std::vector<int>& leafs);
 
+    /**
+     * @brief Sweeps through a small batch of leaf rectangles and finds those intersecting the query range.
+     *
+     * This method assumes a small window (batch) of leafs and performs a vertical sweep
+     * to collect intersecting rectangles into the results vector.
+     *
+     * @param leaf A single rectangle to check for intersection.
+     * @param rangeQ The query rectangle.
+     * @param start The starting index in the batch.
+     * @param size The size of the batch (1).
+     * @param results Vector to collect matching entry IDs.
+     * @param res_size Current size of the results vector (used for resizing).
+     */
+    void sweepLeafs(Rectangle& leaf, const Rectangle& rangeQ, int start, int size, std::vector<int>& results, uint32_t& res_size);
+
+    /**
+     * @brief Sweeps through a larger batch of leaf rectangles, identifying those intersecting the query range.
+     *
+     * This method handles multiple leaf rectangles and checks them against the query rectangle.
+     * Results are collected into the provided results vector.
+     *
+     * @param rangeQ The query rectangle.
+     * @param leafs The vector of leaf rectangles to check.
+     * @param start The starting index within the leafs vector.
+     * @param size The number of rectangles to check.
+     * @param results Vector to collect matching entry IDs.
+     * @param res_size Current size of the results vector (used for resizing).
+     */
+    void sweepLeafsNext(const Rectangle& rangeQ, std::vector<Rectangle>& leafs, int start, int size, std::vector<int>& results, uint32_t& res_size);
+
+    /**
+     * @brief Checks if two rectangles (range and entry) intersect.
+     *
+     * @param rangeMinX Minimum X coordinate of the range rectangle.
+     * @param rangeMinY Minimum Y coordinate of the range rectangle.
+     * @param rangeMaxX Maximum X coordinate of the range rectangle.
+     * @param rangeMaxY Maximum Y coordinate of the range rectangle.
+     * @param rectMinX Minimum X coordinate of the entry rectangle.
+     * @param rectMinY Minimum Y coordinate of the entry rectangle.
+     * @param rectMaxX Maximum X coordinate of the entry rectangle.
+     * @param rectMaxY Maximum Y coordinate of the entry rectangle.
+     * @return True if the rectangles intersect, false otherwise.
+     */
     static inline bool intersects(float rangeMinX, float rangeMinY, float rangeMaxX, float rangeMaxY,
-                               float rectMinX, float rectMinY, float rectMaxX, float rectMaxY) {
+                                  float rectMinX, float rectMinY, float rectMaxX, float rectMaxY) {
         return !(rectMaxX < rangeMinX || rectMinX > rangeMaxX ||
                  rectMaxY < rangeMinY || rectMinY > rangeMaxY);
     }
 
-        /**
+    /**
      * @brief A pointer to the root node of the R-tree.
-     *
-     * The root node is the entry point for all operations on the R-tree, including
-     * insertions, searches, and splits.
-     */
+    */
     Node* m_root;
 
     /**
-     * @brief Default constructor for RTreeBuilder.
-     *
-     * Initializes an RTreeBuilder instance with default parameters and sets up the
-     * initial root node of the R-tree. The default maximum and minimum node entry
-     * counts are used, and internal bookkeeping data structures (e.g., status arrays,
-     * node maps) are prepared for later insertions.
+     * @return the total number of leafs stored in the R-tree.
      */
-    RTreeBulkLoad(int capacity);
-
-    /**
-     * @brief Returns the total number of entries (rectangles) stored in the R-tree.
-     *
-     * @return The number of entries inserted into the R-tree.
-     */
-    int treeSize() const;
+    int getLeafsSize() const;
 
     /**
      * @brief The current height of the R-tree.
@@ -210,8 +188,62 @@ class RTreeBulkLoad {
      */
     const int m_capacity{};
 
-    void sweepLeafs(Rectangle& leaf, const Rectangle& rangeQ, int start, int size, std::vector<int>& results, uint32_t& res_size);
-    void sweepLeafsNext(const Rectangle& rangeQ, std::vector<Rectangle>& leafs, int start, int size, std::vector<int>& results, uint32_t& res_size);
+public:
+
+    /**
+     * @brief Constructor for RTreeBulkLoad.
+     *
+     * Initializes an RTreeBulkLoad instance with the specified capacity, which defines
+     * the maximum number of entries each node can hold.
+     *
+     * @param capacity Maximum number of entries per node.
+     */
+    explicit RTreeBulkLoad(int capacity);
+
+    /**
+    * @brief Bulk loads a set of rectangles (a given dataset) into the R-tree.
+    *
+    * This function constructs the R-tree from a given set of rectangles using a
+    * bottom-up approach. It first creates the leaf level, then iteratively builds
+    * higher levels until a single root node remains.
+    *
+    * @param rectangles A vector of rectangles to be inserted into the R-tree.
+    */
+    void bulkLoad(std::vector<Rectangle>& rectangles);
+
+    /**
+     * @brief Performs a spatial join between two R-trees.
+     *
+     * This function recursively traverses both R-trees, identifying entries whose
+     * leafs (rectangles) intersect. Only nodes whose
+     * minimum bounding rectangles overlap are further explored, ensuring a more
+     * efficient join operation.
+     *
+     * @param rtreeB The second R-tree instance to join.
+     */
+    void join(RTreeBulkLoad& rtreeB);
+
+    /**
+     * @brief Performs a range query on the R-tree.
+     *
+     * Searches for all leaf entries (rectangles) that are contained or intersect with the given range.
+     * Results are collected into an internal vector (m_ids).
+     *
+     * @param range The query range.
+     */
+    void range(const Rectangle& range);
+
+    /**
+     * @brief Performs a k-nearest neighbors (kNN) search on the R-tree.
+     *
+     * Finds the `k` nearest leaf entries (rectangles) to the given query point.
+     * This uses a priority queue for best-first search, prioritizing nodes/rectangles
+     * based on their distance to the query point.
+     *
+     * @param p The query point.
+     * @param k The number of nearest neighbors to find.
+     */
+    void nearestN(const Point& p, int k);
 };
 
 } // rtree
